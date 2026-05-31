@@ -147,7 +147,7 @@ export default function LiveMap() {
           new maps.Marker({
             map: mapRef.current,
             position: dropoffLatLng,
-            title: route.dropoff.name,
+            title: route.dropoff.name || "Destination",
             icon: { path: maps.SymbolPath.CIRCLE, fillColor: "#2563eb", fillOpacity: 1, strokeColor: "#ffffff", strokeWeight: 4, scale: 9 }
           })
         );

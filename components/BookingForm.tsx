@@ -7,7 +7,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 const places = [
   { name: "Skanderbeg Square, Tirana, Albania", lat: 41.3275, lng: 19.8187 },
-  { name: "Blloku, Tirana, Albania", lat: 41.3194, lng: 19.8157 }
+  { name: "", lat: 41.3194, lng: 19.8157 }
 ];
 
 const nearbyDrivers = [
@@ -227,7 +227,7 @@ export default function BookingForm({
               <PlaceInput label="Pickup" value={pickup} onChange={setPickup} placeholder="Search pickup in Albania" />
               <div className="route-line" />
               <div className="route-dot end" />
-              <PlaceInput label="Destination" value={dropoff} onChange={setDropoff} placeholder="Search destination in Albania" />
+              <PlaceInput label="Destination" value={dropoff} onChange={setDropoff} placeholder="Where to?" />
             </div>
             <button className="primary-btn request-btn" type="submit">
               <Search size={19} />

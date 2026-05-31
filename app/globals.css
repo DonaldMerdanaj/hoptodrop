@@ -60,7 +60,8 @@ button { cursor: pointer; }
 .route-card label:last-of-type { grid-row: 3; }
 .route-card span, .quick-grid span { color: var(--muted); font-size: 12px; font-weight: 800; }
 .route-card input, .quick-grid input, .quick-grid select, .auth-card input, .driver-controls input, .booking-row select { width: 100%; border: 1px solid var(--line); outline: none; border-radius: 14px; padding: 11px 12px; color: var(--ink); background: var(--surface-soft); transition: border-color .18s ease, box-shadow .18s ease, background .18s ease; }
-.route-card input::placeholder { color: #9ca3af; opacity: 1; }
+.route-card label:last-of-type input { min-height: 52px; font-size: 17px; font-weight: 700; }
+.route-card input::placeholder { color: #6b7280; font-size: 17px; font-weight: 800; opacity: 1; }
 .route-card input:focus, .quick-grid input:focus, .quick-grid select:focus, .auth-card input:focus, .driver-controls input:focus, .booking-row select:focus { border-color: var(--ink); background: var(--surface); box-shadow: 0 0 0 3px rgba(17,24,39,.08); }
 .route-dot { width: 10px; height: 10px; border-radius: 999px; align-self: center; justify-self: center; }
 .route-dot.start { grid-column: 1; grid-row: 1; background: var(--ink); }
