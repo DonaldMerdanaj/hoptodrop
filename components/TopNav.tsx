@@ -37,7 +37,7 @@ export default function TopNav() {
           {/* fix: hamburger now renders the requested route menu. */}
           <Link href="/">Booking</Link>
           <Link href="/customer-login">Customer Login</Link>
-          <Link href="/driver-login">Driver Login</Link>
+          <Link href="/driver/dashboard">Driver</Link>
           <Link href="/admin">Admin</Link>
         </nav>
       )}

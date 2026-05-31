@@ -162,6 +162,21 @@ button { cursor: pointer; }
 .dashboard-actions { display: grid; gap: 10px; }
 .dashboard-actions .secondary-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
 .driver-controls, .driver-registration { margin-top: 18px; }
+.driver-dashboard-page { display: grid; align-content: start; gap: 12px; padding-left: 10px; padding-right: 10px; }
+.driver-dashboard-header { display: grid; grid-template-columns: minmax(0, 1fr) 46px; align-items: start; gap: 12px; padding: 4px 4px 2px; }
+.driver-dashboard-header h1 { margin: 0; font-size: 28px; letter-spacing: 0; }
+.driver-dashboard-header p { margin: 5px 0 0; color: var(--muted); font-size: 13px; line-height: 1.35; }
+.driver-logout-btn { width: 46px; height: 46px; display: grid; place-items: center; padding: 0; border-radius: 999px; }
+.driver-account-card { display: grid; gap: 3px; padding: 14px; }
+.driver-account-card strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
+.driver-account-card span { color: var(--muted); font-size: 12px; font-weight: 800; }
+.driver-dashboard-card { padding: 12px; border-radius: 22px; box-shadow: 0 12px 32px rgba(17,24,39,.07); }
+.driver-dashboard-card .driver-controls, .driver-dashboard-card .driver-registration, .driver-dashboard-card .driver-jobs { margin-top: 0; }
+.driver-dashboard-card .driver-jobs { gap: 9px; }
+.driver-dashboard-card .driver-jobs h2, .driver-dashboard-card .form-section h2 { font-size: 17px; }
+.driver-dashboard-card .job-card { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.driver-dashboard-card .job-card strong, .driver-dashboard-card .job-card p { overflow: hidden; text-overflow: ellipsis; }
+.driver-dashboard-card .job-card .compact-btn { width: 100%; }
 .driver-login-note, .account-strip, .form-section, .driver-status, .list-item, .job-card { border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
 .driver-login-note, .account-strip { display: grid; gap: 5px; margin-top: 14px; padding: 12px; }
 .driver-login-note span, .account-strip span { color: var(--muted); font-size: 13px; }

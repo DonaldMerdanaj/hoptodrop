@@ -1,20 +1,33 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import AuthForm from "@/components/AuthForm";
 import BottomNav from "@/components/BottomNav";
-import DriverPortal from "@/components/DriverPortal";
 import TopNav from "@/components/TopNav";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export default function DriverLoginPage() {
+  const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function checkDriverAuth() {
-      if (!isSupabaseConfigured || !supabase) return;
-      // fix: check auth on the driver page before showing online controls.
-      const { data } = await supabase.auth.getUser();
-      setIsAuthenticated(Boolean(data.user));
+      if (!isSupabaseConfigured || !supabase) {
+        setLoading(false);
+        return;
+      }
+
+      // fix: authenticated drivers are sent to the real dashboard URL.
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) {
+        setIsAuthenticated(true);
+        router.replace("/driver/dashboard");
+        return;
+      }
+
+      setLoading(false);
     }
 
     checkDriverAuth();
@@ -22,10 +35,11 @@ export default function DriverLoginPage() {
 
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(Boolean(session?.user));
+      if (session?.user) router.replace("/driver/dashboard");
     });
 
     return () => data.subscription.unsubscribe();
-  }, []);
+  }, [router]);
 
   return (
     <main className="auth-page">
@@ -34,8 +48,17 @@ export default function DriverLoginPage() {
         <div className="eyebrow">Driver app</div>
         <h1>Go online and accept trips</h1>
         <p>Register as a real driver, wait for approval, then share live location and accept ride requests.</p>
-        {!isAuthenticated && <p className="status-message">Please log in to go online.</p>}
-        <DriverPortal />
+        {loading && <p className="status-message">Checking driver account...</p>}
+        {!loading && !isAuthenticated && (
+          <>
+            <p className="status-message">Please log in to go online.</p>
+            <AuthForm role="driver" redirectPath="/driver/dashboard" />
+            <div className="driver-login-note">
+              <strong>Driver account first</strong>
+              <span>Create an account and confirm the email link. After login, your driver dashboard will open.</span>
+            </div>
+          </>
+        )}
       </section>
       <BottomNav />
     </main>

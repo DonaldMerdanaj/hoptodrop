@@ -23,7 +23,7 @@ function authMessage(errorMessage: string) {
 }
 
 function authRedirectFor(role: "customer" | "driver", redirectPath?: string) {
-  return redirectPath || (role === "driver" ? "/driver-login" : "/client/dashboard");
+  return redirectPath || (role === "driver" ? "/driver/dashboard" : "/client/dashboard");
 }
 
 function confirmationRedirectUrl(role: "customer" | "driver", redirectPath?: string) {
@@ -49,7 +49,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
     else {
       setMessage("Signed in successfully.");
       onAuthChange?.();
-      if (redirectPath) router.replace(redirectPath);
+      router.replace(authRedirectFor(role, redirectPath));
     }
   }
 
