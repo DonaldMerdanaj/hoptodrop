@@ -1,32 +1,23 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Car, CheckCircle2, Clock3, LocateFixed, MapPin, Navigation, Phone, Search, Star } from "lucide-react";
+import { Car, CheckCircle2, Clock3, LocateFixed, MapPin, Navigation, Search, Star } from "lucide-react";
 import PlaceInput, { type PlaceSelection } from "@/components/PlaceInput";
 import { loadGoogleMaps } from "@/lib/googleMaps";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import type { DriverLocation } from "@/lib/types";
 
 const places = [
   { name: "", lat: 41.3275, lng: 19.8187 },
   { name: "", lat: 41.3194, lng: 19.8157 }
 ];
 
-const nearbyDrivers = [
-  { name: "Arben Hoxha", vehicle: "Toyota Corolla", plate: "AA 482 PT", eta: 2, rating: "4.94", lat: 41.3312, lng: 19.8161, rideClass: "Taxi", multiplier: 1, seats: 4 },
-  { name: "Mira Duka", vehicle: "Hyundai Ioniq", plate: "TR 219 EL", eta: 4, rating: "4.91", lat: 41.3238, lng: 19.8242, rideClass: "Comfort", multiplier: 1.35, seats: 4 },
-  { name: "Sara Kola", vehicle: "VW Touran XL", plate: "VL 044 TX", eta: 6, rating: "4.88", lat: 41.3359, lng: 19.8079, rideClass: "XL", multiplier: 1.65, seats: 6 }
-];
-
 type Step = "where" | "driver" | "details" | "assigned" | "started" | "completed";
-
-const routePrices: Record<string, number> = {
-  "tirana airport-tirana city center": 45,
-  "tirana airport-durrës": 50,
-  "tirana airport-durres": 50,
-  "tirana airport-saranda": 110,
-  "tirana airport-vlora": 85,
-  "tirana airport-berat": 70,
-  "tirana airport-shkoder": 75
+type AvailableDriver = DriverLocation & {
+  eta: number;
+  rideClass: string;
+  multiplier: number;
+  seats: number;
 };
 
 function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number) {
@@ -44,9 +35,23 @@ function calculateTaxiPrice(distance: number, multiplier = 1) {
   const minimumFare = 4;
   const includedKm = 3;
   const extraKmRate = 0.9;
-
   const baseFare = distance <= includedKm ? minimumFare : minimumFare + (distance - includedKm) * extraKmRate;
   return baseFare * multiplier;
+}
+
+function driverEtaMinutes(driver: DriverLocation, pickup: PlaceSelection) {
+  const kmToPickup = distanceKm(driver.lat, driver.lng, pickup.lat, pickup.lng);
+  return Math.max(2, Math.round(kmToPickup * 3));
+}
+
+function normalizeDriver(driver: DriverLocation, pickup: PlaceSelection): AvailableDriver {
+  return {
+    ...driver,
+    eta: driverEtaMinutes(driver, pickup),
+    rideClass: "Taxi",
+    multiplier: 1,
+    seats: 4
+  };
 }
 
 function routePreview(origin: PlaceSelection, destination: PlaceSelection) {
@@ -71,7 +76,8 @@ export default function BookingForm({
   const [step, setStep] = useState<Step>("where");
   const [pickup, setPickup] = useState<PlaceSelection>(places[0]);
   const [dropoff, setDropoff] = useState<PlaceSelection>(places[1]);
-  const [selectedDriver, setSelectedDriver] = useState(nearbyDrivers[0]);
+  const [availableDrivers, setAvailableDrivers] = useState<AvailableDriver[]>([]);
+  const [selectedDriver, setSelectedDriver] = useState<AvailableDriver | null>(null);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [passengers, setPassengers] = useState(1);
@@ -85,14 +91,14 @@ export default function BookingForm({
 
   const tripKm = distanceKm(pickup.lat, pickup.lng, dropoff.lat, dropoff.lng);
   const estimatedPrice = useMemo(() => {
-    return Number(calculateTaxiPrice(tripKm, selectedDriver.multiplier).toFixed(2));
-  }, [selectedDriver.multiplier, tripKm]);
+    return Number(calculateTaxiPrice(tripKm, selectedDriver?.multiplier || 1).toFixed(2));
+  }, [selectedDriver?.multiplier, tripKm]);
 
   useEffect(() => {
     if (step === "where" || step === "driver") routePreview(pickup, dropoff);
-    if (step === "details" || step === "assigned") {
+    if ((step === "details" || step === "assigned") && selectedDriver) {
       routePreview(
-        { name: `${selectedDriver.name} location`, lat: selectedDriver.lat, lng: selectedDriver.lng },
+        { name: `${selectedDriver.driver_name} location`, lat: selectedDriver.lat, lng: selectedDriver.lng },
         pickup
       );
     }
@@ -120,6 +126,45 @@ export default function BookingForm({
     }
   }, [open]);
 
+  useEffect(() => {
+    if (!open || !isSupabaseConfigured || !supabase) return;
+
+    const client = supabase;
+
+    async function loadOnlineDrivers() {
+      // fix: booking form now uses real online drivers from Supabase instead of example taxis.
+      const { data, error } = await client
+        .from("driver_locations")
+        .select("*")
+        .eq("status", "online")
+        .order("updated_at", { ascending: false });
+
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
+
+      const drivers = (data || []).map((driver) => normalizeDriver(driver as DriverLocation, pickup));
+      setAvailableDrivers(drivers);
+      setSelectedDriver((current) => {
+        if (!drivers.length) return null;
+        if (!current) return drivers[0];
+        return drivers.find((driver) => driver.id === current.id) || drivers[0];
+      });
+    }
+
+    loadOnlineDrivers();
+
+    const channel = client
+      .channel("booking-online-drivers")
+      .on("postgres_changes", { event: "*", schema: "public", table: "driver_locations" }, loadOnlineDrivers)
+      .subscribe();
+
+    return () => {
+      client.removeChannel(channel);
+    };
+  }, [open, pickup]);
+
   if (!open) return null;
 
   function findDrivers() {
@@ -132,9 +177,18 @@ export default function BookingForm({
       setMessage("Choose your destination first.");
       return;
     }
+
     setTypingMode(false);
     setStep("driver");
-    setMessage("Nearby taxis found.");
+
+    if (availableDrivers.length === 0) {
+      setSelectedDriver(null);
+      setMessage("No online taxis right now. Approved drivers must go online from the driver dashboard.");
+      return;
+    }
+
+    setSelectedDriver((current) => current || availableDrivers[0]);
+    setMessage("Online taxis found.");
   }
 
   async function useCurrentPickup() {
@@ -176,17 +230,27 @@ export default function BookingForm({
     );
   }
 
-  function chooseDriver(driver: typeof nearbyDrivers[number]) {
+  function chooseDriver(driver: AvailableDriver) {
     setSelectedDriver(driver);
-    setMessage(`${driver.rideClass} selected.`);
+    setMessage(`${driver.driver_name} selected.`);
   }
 
   function continueWithDriver() {
+    if (!selectedDriver) {
+      setMessage("Choose an online taxi first.");
+      return;
+    }
+
     setStep("details");
-    setMessage(`${selectedDriver.rideClass} selected. Add customer details to request the ride.`);
+    setMessage(`${selectedDriver.driver_name} selected. Add customer details to request the ride.`);
   }
 
   async function confirmRide() {
+    if (!selectedDriver) {
+      setMessage("Choose an online taxi first.");
+      return;
+    }
+
     setMessage("Requesting ride...");
 
     const booking = {
@@ -202,12 +266,13 @@ export default function BookingForm({
       pickup_time: new Date().toISOString(),
       passengers,
       luggage: "Not required",
-      vehicle_type: selectedDriver.vehicle,
+      vehicle_type: selectedDriver.vehicle || "Taxi",
       ride_class: selectedDriver.rideClass,
       payment_method: paymentMethod,
-      driver_name: null,
-      driver_vehicle: null,
-      driver_eta: null,
+      driver_id: selectedDriver.id,
+      driver_name: selectedDriver.driver_name,
+      driver_vehicle: selectedDriver.vehicle || "Taxi",
+      driver_eta: selectedDriver.eta,
       estimated_price: estimatedPrice
     };
 
@@ -220,7 +285,7 @@ export default function BookingForm({
 
       const { data, error } = await supabase
         .from("bookings")
-        .insert({ ...booking, customer_id: userData.user.id, status: "pending" })
+        .insert({ ...booking, customer_id: userData.user.id, status: "assigned" })
         .select("id")
         .single();
 
@@ -233,7 +298,7 @@ export default function BookingForm({
     }
 
     setStep("assigned");
-    setMessage("Request sent. Approved drivers can now accept it.");
+    setMessage(`Request sent to ${selectedDriver.driver_name}.`);
   }
 
   async function completeRide() {
@@ -255,7 +320,7 @@ export default function BookingForm({
     where: "Where to?",
     driver: "Choose taxi",
     details: "Request ride",
-    assigned: "Finding driver",
+    assigned: "Driver assigned",
     started: "Ride in progress",
     completed: "Ride completed"
   }[step];
@@ -287,7 +352,7 @@ export default function BookingForm({
             <strong>{collapsedTitle}</strong>
             <small>{collapsedSubtitle}</small>
           </span>
-          <b>{selectedDriver.eta} min</b>
+          <b>{selectedDriver ? `${selectedDriver.eta} min` : "--"}</b>
         </button>
       </section>
     );
@@ -309,7 +374,7 @@ export default function BookingForm({
           <h1>{title}</h1>
         </div>
         <div className="sheet-actions">
-          <div className="eta-chip"><Clock3 size={16} /> {selectedDriver.eta} min</div>
+          <div className="eta-chip"><Clock3 size={16} /> {selectedDriver ? `${selectedDriver.eta} min` : "--"}</div>
           <button className="icon-close" type="button" onClick={onClose} aria-label="Close booking form">x</button>
         </div>
       </div>
@@ -350,39 +415,48 @@ export default function BookingForm({
           <>
             <div className="fare-box">
               <div><span>{tripKm.toFixed(1)} km trip</span><strong>Choose your ride</strong></div>
-              <div><span>From</span><strong>€{calculateTaxiPrice(tripKm).toFixed(2)}</strong></div>
+              <div><span>From</span><strong>EUR {calculateTaxiPrice(tripKm).toFixed(2)}</strong></div>
             </div>
             <div className="driver-pick-list">
-              {nearbyDrivers.map((driver) => (
+              {availableDrivers.map((driver) => (
                 <button
-                  className={selectedDriver.name === driver.name ? "driver-pick-card active" : "driver-pick-card"}
-                  key={driver.name}
+                  className={selectedDriver?.id === driver.id ? "driver-pick-card active" : "driver-pick-card"}
+                  key={driver.id}
                   type="button"
                   onClick={() => chooseDriver(driver)}
                 >
                   <span className="driver-avatar"><Car size={22} /></span>
                   <span className="driver-option-copy">
-                    <strong>{driver.rideClass}</strong>
-                    <small>{driver.seats} seats - {driver.vehicle}</small>
-                    <small><Star size={12} /> {driver.rating} - {driver.eta} min pickup</small>
+                    <strong>{driver.driver_name}</strong>
+                    <small>{driver.seats} seats - {driver.vehicle || "Taxi"}</small>
+                    <small><Star size={12} /> Live taxi - {driver.eta} min pickup</small>
                   </span>
-                  <b>€{calculateTaxiPrice(tripKm, driver.multiplier).toFixed(2)}</b>
+                  <b>EUR {calculateTaxiPrice(tripKm, driver.multiplier).toFixed(2)}</b>
                 </button>
               ))}
+              {availableDrivers.length === 0 && (
+                <div className="trip-status-card">
+                  <Clock3 size={22} />
+                  <div>
+                    <strong>No online taxis</strong>
+                    <span>Approve the driver, then ask the driver to open /driver/dashboard and tap Go online with GPS.</span>
+                  </div>
+                </div>
+              )}
             </div>
-            <button className="primary-btn request-btn" type="button" onClick={continueWithDriver}>
+            <button className="primary-btn request-btn" type="button" onClick={continueWithDriver} disabled={!selectedDriver}>
               <Car size={19} />
-              Continue with {selectedDriver.rideClass} - €{estimatedPrice.toFixed(2)}
+              {selectedDriver ? `Continue with ${selectedDriver.driver_name} - EUR ${estimatedPrice.toFixed(2)}` : "Waiting for online taxi"}
             </button>
             <button className="secondary-btn compact-step-back" type="button" onClick={() => setStep("where")}>Back to location</button>
           </>
         )}
 
-        {step === "details" && (
+        {step === "details" && selectedDriver && (
           <>
             <div className="trip-summary-card">
-              <strong>{selectedDriver.name}</strong>
-              <span>{selectedDriver.vehicle} - {selectedDriver.plate} - {selectedDriver.eta} min away</span>
+              <strong>{selectedDriver.driver_name}</strong>
+              <span>{selectedDriver.vehicle || "Taxi"} - {selectedDriver.eta} min away</span>
             </div>
             <div className="quick-grid details-grid">
               <label><span>Name</span><input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Rider name" /></label>
@@ -391,7 +465,7 @@ export default function BookingForm({
               <label><span>Payment</span><select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}><option>Cash</option><option>Card</option><option>Wallet</option></select></label>
             </div>
             <div className="fare-box">
-              <div><span>{tripKm.toFixed(1)} km trip</span><strong>€{estimatedPrice.toFixed(2)}</strong></div>
+              <div><span>{tripKm.toFixed(1)} km trip</span><strong>EUR {estimatedPrice.toFixed(2)}</strong></div>
               <div><span>Route</span><strong>Driver to pickup</strong></div>
             </div>
             <button className="primary-btn request-btn" type="submit">
@@ -407,8 +481,8 @@ export default function BookingForm({
             <div className="trip-status-card">
               <Navigation size={22} />
               <div>
-                <strong>Finding a driver</strong>
-                <span>Your request is live for approved drivers nearby.</span>
+                <strong>{selectedDriver ? `${selectedDriver.driver_name} assigned` : "Driver assigned"}</strong>
+                <span>Your request was sent to the selected online driver.</span>
               </div>
             </div>
           </>
@@ -435,7 +509,7 @@ export default function BookingForm({
             <CheckCircle2 size={24} />
             <div>
               <strong>Ride completed</strong>
-              <span>€{estimatedPrice.toFixed(2)} - {paymentMethod}</span>
+              <span>EUR {estimatedPrice.toFixed(2)} - {paymentMethod}</span>
             </div>
           </div>
         )}
