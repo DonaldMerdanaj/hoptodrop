@@ -15,6 +15,7 @@ type DriverProfile = {
 export default function DriverLocationSender() {
   const [message, setMessage] = useState("");
   const [profile, setProfile] = useState<DriverProfile | null>(null);
+  const [online, setOnline] = useState(false);
   const watchIdRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -30,6 +31,13 @@ export default function DriverLocationSender() {
         .maybeSingle();
 
       if (data) setProfile(data as DriverProfile);
+
+      const { data: location } = await supabase
+        .from("driver_locations")
+        .select("status")
+        .eq("id", userData.user.id)
+        .maybeSingle();
+      setOnline(location?.status === "online");
     }
 
     loadProfile();
@@ -89,7 +97,10 @@ export default function DriverLocationSender() {
         });
 
         if (error) setMessage(error.message);
-        else setMessage("You are online. Your location is live.");
+        else {
+          setOnline(true);
+          setMessage("You are online. Your location is live.");
+        }
       },
       () => setMessage("Location permission denied."),
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
@@ -110,17 +121,20 @@ export default function DriverLocationSender() {
     const { data } = await supabase.auth.getUser();
     if (!data.user) return setMessage("Please login first.");
     await supabase.from("driver_locations").update({ status: "offline" }).eq("id", data.user.id);
+    setOnline(false);
     setMessage("You are offline.");
   }
 
   return (
     <div className="driver-controls">
-      <div className={`driver-status ${profile?.approval_status || "draft"}`}>
-        <strong>{profile?.approval_status === "approved" ? "Approved to drive" : "Driver approval required"}</strong>
-        <span>{profile ? `Status: ${profile.approval_status}` : "Submit registration before going online."}</span>
+      <div className={`driver-status ${online ? "approved" : profile?.approval_status || "draft"}`}>
+        <strong>{online ? "Online and visible to riders" : profile?.approval_status === "approved" ? "Ready to go online" : "Driver approval required"}</strong>
+        <span>{profile?.approval_status === "approved" ? "Keep this page open while driving." : "Submit registration before going online."}</span>
       </div>
-      <button className="primary-btn" onClick={goOnline}>Go online with GPS</button>
-      <button className="secondary-btn" onClick={goOffline}>Go offline</button>
+      <div className="driver-online-actions">
+        <button className="primary-btn" onClick={goOnline}>{online ? "Refresh live GPS" : "Go online"}</button>
+        <button className="secondary-btn" onClick={goOffline}>Go offline</button>
+      </div>
       {message && <p className="status-message">{message}</p>}
     </div>
   );

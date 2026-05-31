@@ -167,9 +167,18 @@ button { cursor: pointer; }
 .driver-dashboard-header h1 { margin: 0; font-size: 28px; letter-spacing: 0; }
 .driver-dashboard-header p { margin: 5px 0 0; color: var(--muted); font-size: 13px; line-height: 1.35; }
 .driver-logout-btn { width: 46px; height: 46px; display: grid; place-items: center; padding: 0; border-radius: 999px; }
-.driver-account-card { display: grid; gap: 3px; padding: 14px; }
-.driver-account-card strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
-.driver-account-card span { color: var(--muted); font-size: 12px; font-weight: 800; }
+.driver-command-card { display: grid; gap: 12px; padding: 14px; }
+.driver-command-top { display: grid; grid-template-columns: 12px minmax(0, 1fr); align-items: center; gap: 10px; }
+.driver-live-dot { width: 12px; height: 12px; border-radius: 999px; background: #d1d5db; box-shadow: 0 0 0 5px rgba(209,213,219,.35); }
+.driver-live-dot.approved { background: #10b981; box-shadow: 0 0 0 5px rgba(16,185,129,.16); }
+.driver-command-top div { display: grid; gap: 2px; min-width: 0; }
+.driver-command-top strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 17px; }
+.driver-command-top span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12px; font-weight: 800; }
+.driver-command-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.driver-command-grid div { display: grid; gap: 5px; min-width: 0; padding: 10px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface-soft); }
+.driver-command-grid svg { color: var(--ink); }
+.driver-command-grid span { color: var(--muted); font-size: 11px; font-weight: 900; }
+.driver-command-grid strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; text-transform: capitalize; }
 .driver-dashboard-card { padding: 12px; border-radius: 22px; box-shadow: 0 12px 32px rgba(17,24,39,.07); }
 .driver-dashboard-card .driver-controls, .driver-dashboard-card .driver-registration, .driver-dashboard-card .driver-jobs { margin-top: 0; }
 .driver-dashboard-card .driver-jobs { gap: 9px; }
@@ -177,6 +186,10 @@ button { cursor: pointer; }
 .driver-dashboard-card .job-card { grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .driver-dashboard-card .job-card strong, .driver-dashboard-card .job-card p { overflow: hidden; text-overflow: ellipsis; }
 .driver-dashboard-card .job-card .compact-btn { width: 100%; }
+.driver-online-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.driver-form-intro { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: start; gap: 9px; margin-bottom: 12px; }
+.driver-form-intro strong { display: block; font-size: 15px; }
+.driver-form-intro span { display: block; color: var(--muted); font-size: 12px; line-height: 1.35; }
 .driver-login-note, .account-strip, .form-section, .driver-status, .list-item, .job-card { border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
 .driver-login-note, .account-strip { display: grid; gap: 5px; margin-top: 14px; padding: 12px; }
 .driver-login-note span, .account-strip span { color: var(--muted); font-size: 13px; }
