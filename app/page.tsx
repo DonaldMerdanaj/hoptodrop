@@ -13,6 +13,7 @@ const LiveMap = dynamic(() => import("@/components/LiveMap"), { ssr: false });
 export default function Home() {
   const [bookingOpen, setBookingOpen] = useState(false);
   const [mapPickup, setMapPickup] = useState<PlaceSelection | null>(null);
+  const [launcherDestination, setLauncherDestination] = useState<PlaceSelection | null>(null);
 
   useEffect(() => {
     function onMapTap(event: Event) {
@@ -24,6 +25,7 @@ export default function Home() {
     function onGoLiveMap() {
       setBookingOpen(false);
       setMapPickup(null);
+      setLauncherDestination(null);
     }
 
     window.addEventListener("taxi-map-tap", onMapTap);
@@ -39,8 +41,20 @@ export default function Home() {
       <LiveMap />
       <div className="map-overlay" />
       <TopNav />
-      {!bookingOpen && <RideLauncher onRequestRide={() => setBookingOpen(true)} />}
-      <BookingForm open={bookingOpen} mapPickup={mapPickup} onClose={() => setBookingOpen(false)} />
+      {!bookingOpen && (
+        <RideLauncher
+          onDestinationSelected={(destination) => {
+            setLauncherDestination(destination);
+            setBookingOpen(true);
+          }}
+        />
+      )}
+      <BookingForm
+        open={bookingOpen}
+        mapPickup={mapPickup}
+        initialDropoff={launcherDestination}
+        onClose={() => setBookingOpen(false)}
+      />
       <BottomNav />
     </main>
   );

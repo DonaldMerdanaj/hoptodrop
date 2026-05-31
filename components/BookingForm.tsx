@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Car, CheckCircle2, Clock3, CreditCard, MapPin, Navigation, Phone, Search, Star } from "lucide-react";
+import { Car, CheckCircle2, Clock3, LocateFixed, MapPin, Navigation, Phone, Search, Star } from "lucide-react";
 import PlaceInput, { type PlaceSelection } from "@/components/PlaceInput";
+import { loadGoogleMaps } from "@/lib/googleMaps";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 const places = [
-  { name: "Skanderbeg Square, Tirana, Albania", lat: 41.3275, lng: 19.8187 },
+  { name: "", lat: 41.3275, lng: 19.8187 },
   { name: "", lat: 41.3194, lng: 19.8157 }
 ];
 
@@ -48,10 +49,12 @@ function routePreview(origin: PlaceSelection, destination: PlaceSelection) {
 export default function BookingForm({
   open,
   mapPickup,
+  initialDropoff,
   onClose
 }: {
   open: boolean;
   mapPickup: PlaceSelection | null;
+  initialDropoff: PlaceSelection | null;
   onClose: () => void;
 }) {
   const [step, setStep] = useState<Step>("where");
@@ -65,6 +68,7 @@ export default function BookingForm({
   const [typingMode, setTypingMode] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [message, setMessage] = useState("");
+  const [locatingPickup, setLocatingPickup] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const dragStartY = useRef<number | null>(null);
 
@@ -103,6 +107,10 @@ export default function BookingForm({
   }, [mapPickup]);
 
   useEffect(() => {
+    if (initialDropoff) setDropoff(initialDropoff);
+  }, [initialDropoff]);
+
+  useEffect(() => {
     if (open) {
       setStep("where");
       setCollapsed(false);
@@ -115,9 +123,56 @@ export default function BookingForm({
 
   function findDrivers() {
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    if (!pickup.name.trim()) {
+      setMessage("Add your pickup location or use current location.");
+      return;
+    }
+    if (!dropoff.name.trim()) {
+      setMessage("Choose your destination first.");
+      return;
+    }
     setTypingMode(false);
     setStep("driver");
     setMessage("Nearby taxis found.");
+  }
+
+  async function useCurrentPickup() {
+    setMessage("");
+    if (!navigator.geolocation) {
+      setMessage("Current location is not available in this browser.");
+      return;
+    }
+
+    setLocatingPickup(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const fallback = {
+          name: "Current location",
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+
+        try {
+          const maps = await loadGoogleMaps();
+          const geocoder = new maps.Geocoder();
+          geocoder.geocode({ location: { lat: fallback.lat, lng: fallback.lng } }, (results: any[], status: string) => {
+            setPickup({
+              ...fallback,
+              name: status === "OK" && results?.[0]?.formatted_address ? results[0].formatted_address : fallback.name
+            });
+            setLocatingPickup(false);
+          });
+        } catch {
+          setPickup(fallback);
+          setLocatingPickup(false);
+        }
+      },
+      () => {
+        setMessage("Allow location access to use current pickup.");
+        setLocatingPickup(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
   }
 
   function chooseDriver(driver: typeof nearbyDrivers[number]) {
@@ -200,8 +255,8 @@ export default function BookingForm({
     completed: "Ride completed"
   }[step];
 
-  const collapsedTitle = step === "where" && !dropoff.name ? "Where to?" : title;
-  const collapsedSubtitle = dropoff.name ? `${pickup.name} to ${dropoff.name}` : pickup.name;
+  const collapsedTitle = dropoff.name || "Where to?";
+  const collapsedSubtitle = pickup.name ? `Pickup: ${pickup.name}` : "Add pickup location";
 
   function startSheetDrag(event: React.PointerEvent<HTMLElement>) {
     dragStartY.current = event.clientY;
@@ -268,7 +323,13 @@ export default function BookingForm({
           <>
             <div className="route-card">
               <div className="route-dot start" />
-              <PlaceInput label="Pickup" value={pickup} onChange={setPickup} placeholder="Search pickup in Albania" />
+              <div className="pickup-field">
+                <PlaceInput label="Pickup" value={pickup} onChange={setPickup} placeholder="Pickup location" />
+                <button className="current-location-btn" type="button" onClick={useCurrentPickup}>
+                  <LocateFixed size={15} />
+                  {locatingPickup ? "Locating..." : "Use current location"}
+                </button>
+              </div>
               <div className="route-line" />
               <div className="route-dot end" />
               <PlaceInput label="Destination" value={dropoff} onChange={setDropoff} placeholder="Where to?" />

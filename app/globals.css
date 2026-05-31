@@ -40,6 +40,10 @@ button { cursor: pointer; }
 .where-to-pill:hover { transform: translateY(-1px); border-color: #9ca3af; box-shadow: 0 12px 24px rgba(17,24,39,.08); }
 .where-to-pill svg { color: var(--ink); }
 .where-to-pill span { font-size: 21px; font-weight: 900; }
+.launcher-search label { min-width: 0; }
+.launcher-search label > span { display: none; }
+.launcher-search input { width: 100%; border: 0; outline: 0; padding: 0; color: var(--ink); background: transparent; font-size: 21px; font-weight: 900; }
+.launcher-search input::placeholder { color: var(--ink); opacity: 1; }
 
 .ride-sheet { position: absolute; z-index: 20; left: 12px; right: 12px; bottom: calc(82px + env(safe-area-inset-bottom)); max-height: min(54dvh, 470px); overflow: auto; padding: 10px; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); box-shadow: 0 22px 60px rgba(17,24,39,.18); }
 .ride-sheet.typing-mode { max-height: min(44dvh, 340px); }
@@ -67,11 +71,14 @@ button { cursor: pointer; }
 .route-card label { grid-column: 2; min-width: 0; }
 .route-card label:first-of-type { grid-row: 1; }
 .route-card label:last-of-type { grid-row: 3; }
+.pickup-field { grid-column: 2; grid-row: 1; display: grid; gap: 7px; min-width: 0; }
+.pickup-field label { grid-column: auto; grid-row: auto; }
 .route-card span, .quick-grid span { color: var(--muted); font-size: 12px; font-weight: 800; }
 .route-card input, .quick-grid input, .quick-grid select, .auth-card input, .driver-controls input, .booking-row select { width: 100%; border: 1px solid var(--line); outline: none; border-radius: 14px; padding: 10px 12px; color: var(--ink); background: var(--surface-soft); transition: border-color .18s ease, box-shadow .18s ease, background .18s ease; }
 .route-card label:last-of-type input { min-height: 48px; font-size: 17px; font-weight: 700; }
 .route-card input::placeholder { color: #6b7280; font-size: 17px; font-weight: 800; opacity: 1; }
 .route-card input:focus, .quick-grid input:focus, .quick-grid select:focus, .auth-card input:focus, .driver-controls input:focus, .booking-row select:focus { border-color: var(--ink); background: var(--surface); box-shadow: 0 0 0 3px rgba(17,24,39,.08); }
+.current-location-btn { justify-self: start; display: inline-flex; align-items: center; gap: 5px; min-height: 28px; border: 0; padding: 0 2px; color: var(--ink); background: transparent; font-size: 12px; font-weight: 900; }
 .route-dot { width: 10px; height: 10px; border-radius: 999px; align-self: center; justify-self: center; }
 .route-dot.start { grid-column: 1; grid-row: 1; background: var(--ink); }
 .route-dot.end { grid-column: 1; grid-row: 3; background: var(--accent); }

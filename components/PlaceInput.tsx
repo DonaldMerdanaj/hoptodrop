@@ -14,10 +14,11 @@ type PlaceInputProps = {
   label: string;
   value: PlaceSelection;
   onChange: (place: PlaceSelection) => void;
+  onPlaceSelected?: (place: PlaceSelection) => void;
   placeholder: string;
 };
 
-export default function PlaceInput({ label, value, onChange, placeholder }: PlaceInputProps) {
+export default function PlaceInput({ label, value, onChange, onPlaceSelected, placeholder }: PlaceInputProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -38,12 +39,15 @@ export default function PlaceInput({ label, value, onChange, placeholder }: Plac
           const location = place.geometry?.location;
           if (!location) return;
 
-          onChange({
+          const selection = {
             name: place.formatted_address || place.name || inputRef.current?.value || "",
             lat: location.lat(),
             lng: location.lng(),
             placeId: place.place_id
-          });
+          };
+
+          onChange(selection);
+          onPlaceSelected?.(selection);
         });
       })
       .catch(() => {
