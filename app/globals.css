@@ -53,15 +53,19 @@ button { cursor: pointer; }
 .icon-close:hover { background: var(--surface-soft); }
 .ride-form { display: grid; gap: 10px; }
 
-.route-card { display: grid; grid-template-columns: 16px 1fr; gap: 8px 10px; padding: 12px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
+.route-card { display: grid; grid-template-columns: 16px minmax(0, 1fr); grid-template-rows: auto 18px auto; gap: 8px 10px; padding: 12px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
 .route-card label, .quick-grid label { display: grid; gap: 6px; }
+.route-card label { grid-column: 2; min-width: 0; }
+.route-card label:first-of-type { grid-row: 1; }
+.route-card label:last-of-type { grid-row: 3; }
 .route-card span, .quick-grid span { color: var(--muted); font-size: 12px; font-weight: 800; }
 .route-card input, .quick-grid input, .quick-grid select, .auth-card input, .driver-controls input, .booking-row select { width: 100%; border: 1px solid var(--line); outline: none; border-radius: 14px; padding: 11px 12px; color: var(--ink); background: var(--surface-soft); transition: border-color .18s ease, box-shadow .18s ease, background .18s ease; }
+.route-card input::placeholder { color: #9ca3af; opacity: 1; }
 .route-card input:focus, .quick-grid input:focus, .quick-grid select:focus, .auth-card input:focus, .driver-controls input:focus, .booking-row select:focus { border-color: var(--ink); background: var(--surface); box-shadow: 0 0 0 3px rgba(17,24,39,.08); }
 .route-dot { width: 10px; height: 10px; border-radius: 999px; align-self: center; justify-self: center; }
-.route-dot.start { background: var(--ink); }
-.route-dot.end { background: var(--accent); }
-.route-line { width: 2px; height: 18px; background: var(--line-strong); justify-self: center; }
+.route-dot.start { grid-column: 1; grid-row: 1; background: var(--ink); }
+.route-dot.end { grid-column: 1; grid-row: 3; background: var(--accent); }
+.route-line { grid-column: 1; grid-row: 2; width: 2px; height: 18px; background: var(--line-strong); justify-self: center; }
 
 .driver-pick-list, .ride-options { display: grid; gap: 8px; }
 .driver-pick-card { display: grid; grid-template-columns: 42px 1fr auto; align-items: center; gap: 10px; width: 100%; border: 1px solid var(--line); border-radius: 18px; padding: 11px; color: var(--ink); background: var(--surface); text-align: left; transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
