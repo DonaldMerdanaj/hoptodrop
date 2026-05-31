@@ -33,7 +33,13 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <div className="desktop-blocker" aria-live="polite">
+          <h1>Open HopToDrop on mobile</h1>
+          <p>This ride booking app is designed for phones only. Please open hoptodrop.vercel.app from your mobile device.</p>
+        </div>
+        {children}
+      </body>
     </html>
   );
 }
