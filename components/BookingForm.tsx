@@ -40,6 +40,15 @@ function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number) {
   return earthKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+function calculateTaxiPrice(distance: number) {
+  const minimumFare = 4;
+  const includedKm = 3;
+  const extraKmRate = 0.9;
+
+  if (distance <= includedKm) return minimumFare;
+  return minimumFare + (distance - includedKm) * extraKmRate;
+}
+
 function routePreview(origin: PlaceSelection, destination: PlaceSelection) {
   window.dispatchEvent(new CustomEvent("taxi-route-preview", {
     detail: { pickup: origin, dropoff: destination }
@@ -76,22 +85,8 @@ export default function BookingForm({
 
   const tripKm = distanceKm(pickup.lat, pickup.lng, dropoff.lat, dropoff.lng);
   const estimatedPrice = useMemo(() => {
-    // fix: use route-aware base prices with vehicle multipliers, falling back to 45.
-    const normalize = (value: string) => value.toLowerCase().replace(/, albania/g, "").replace(/\s+/g, " ").trim();
-    const routeKey = `${normalize(pickup.name)}-${normalize(dropoff.name)}`;
-    const reverseRouteKey = `${normalize(dropoff.name)}-${normalize(pickup.name)}`;
-    const basePrice = routePrices[routeKey] ?? routePrices[reverseRouteKey] ?? 45;
-    const multiplierByClass: Record<string, number> = {
-      Taxi: 1,
-      "Private car": 1,
-      XL: 1.3,
-      Minivan: 1.3,
-      Comfort: 1.6,
-      "Luxury SUV": 1.6
-    };
-
-    return Math.round(basePrice * (multiplierByClass[selectedDriver.rideClass] ?? 1));
-  }, [dropoff.name, pickup.name, selectedDriver.rideClass]);
+    return Number(calculateTaxiPrice(tripKm).toFixed(2));
+  }, [tripKm]);
 
   useEffect(() => {
     if (step === "where" || step === "driver") routePreview(pickup, dropoff);
@@ -384,7 +379,7 @@ export default function BookingForm({
               <label><span>Payment</span><select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}><option>Cash</option><option>Card</option><option>Wallet</option></select></label>
             </div>
             <div className="fare-box">
-              <div><span>{tripKm.toFixed(1)} km trip</span><strong>EUR {estimatedPrice}</strong></div>
+              <div><span>{tripKm.toFixed(1)} km trip</span><strong>€{estimatedPrice.toFixed(2)}</strong></div>
               <div><span>Route</span><strong>Driver to pickup</strong></div>
             </div>
             <button className="primary-btn request-btn" type="submit">
@@ -432,7 +427,7 @@ export default function BookingForm({
             <CheckCircle2 size={24} />
             <div>
               <strong>Ride completed</strong>
-              <span>EUR {estimatedPrice} - {paymentMethod}</span>
+              <span>€{estimatedPrice.toFixed(2)} - {paymentMethod}</span>
             </div>
           </div>
         )}
