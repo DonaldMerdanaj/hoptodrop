@@ -21,8 +21,9 @@ export default function DriverPortal() {
       return;
     }
 
-    const { data } = await supabase.auth.getUser();
-    setUser(data.user ? { email: data.user.email || "" } : null);
+    // fix: read the persisted session first so unconfirmed or signed-out drivers do not trigger noisy auth errors.
+    const { data } = await supabase.auth.getSession();
+    setUser(data.session?.user ? { email: data.session.user.email || "" } : null);
     setLoading(false);
   }
 

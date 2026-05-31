@@ -27,18 +27,38 @@ function AuthCallbackContent() {
         return;
       }
 
-      if (!code) {
-        setError("No OAuth code was returned by Supabase.");
-        return;
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (exchangeError) {
+          setError(exchangeError.message);
+          return;
+        }
+      } else {
+        // fix: support Supabase email confirmation links that restore the session from URL tokens instead of an OAuth code.
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        const accessToken = hashParams.get("access_token");
+        const refreshToken = hashParams.get("refresh_token");
+
+        if (accessToken && refreshToken) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+
+          if (sessionError) {
+            setError(sessionError.message);
+            return;
+          }
+        } else {
+          const { data } = await supabase.auth.getSession();
+          if (!data.session) {
+            setError("The confirmation link is invalid or expired. Please request a new sign-up email.");
+            return;
+          }
+        }
       }
 
-      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-      if (exchangeError) {
-        setError(exchangeError.message);
-        return;
-      }
-
-      setMessage("Signed in. Redirecting...");
+      setMessage("Email confirmed. Redirecting...");
       router.replace(next);
     }
 

@@ -15,7 +15,15 @@ function authMessage(errorMessage: string) {
     return "Invalid Supabase anon key. In Vercel, set NEXT_PUBLIC_SUPABASE_ANON_KEY to the anon public key from the same Supabase project as NEXT_PUBLIC_SUPABASE_URL, then redeploy.";
   }
 
+  if (errorMessage.toLowerCase().includes("invalid login credentials")) {
+    return "Invalid email or password. If you just created this account, open the confirmation link sent to your email first.";
+  }
+
   return errorMessage;
+}
+
+function authRedirectFor(role: "customer" | "driver", redirectPath?: string) {
+  return redirectPath || (role === "driver" ? "/driver-login" : "/client/dashboard");
 }
 
 export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormProps) {
@@ -48,16 +56,20 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
       return;
     }
 
+    const nextPath = authRedirectFor(role, redirectPath);
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { role } }
+      options: {
+        // fix: send a real Supabase confirmation link that returns to the correct app page after email verification.
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
+        data: { role }
+      }
     });
     if (error) setMessage(authMessage(error.message));
     else {
-      setMessage("Account created. Please check your email if confirmation is enabled.");
-      onAuthChange?.();
-      if (redirectPath) router.replace(redirectPath);
+      setMessage("Confirmation link sent. Open the email link to verify this account, then log in.");
+      setMode("login");
     }
   }
 
@@ -71,7 +83,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectPath || (role === "driver" ? "/driver-login" : "/client/dashboard"))}`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(authRedirectFor(role, redirectPath))}`,
         queryParams: {
           access_type: "offline",
           prompt: "consent"
