@@ -49,11 +49,13 @@ function routePreview(origin: PlaceSelection, destination: PlaceSelection) {
 export default function BookingForm({
   open,
   mapPickup,
+  initialPickup,
   initialDropoff,
   onClose
 }: {
   open: boolean;
   mapPickup: PlaceSelection | null;
+  initialPickup: PlaceSelection | null;
   initialDropoff: PlaceSelection | null;
   onClose: () => void;
 }) {
@@ -105,6 +107,10 @@ export default function BookingForm({
   useEffect(() => {
     if (mapPickup) setPickup(mapPickup);
   }, [mapPickup]);
+
+  useEffect(() => {
+    if (initialPickup) setPickup(initialPickup);
+  }, [initialPickup]);
 
   useEffect(() => {
     if (initialDropoff) setDropoff(initialDropoff);

@@ -11,8 +11,8 @@ type RoutePoint = {
   lng: number;
 };
 
-const defaultPickup: RoutePoint = { name: "Skanderbeg Square, Tirana, Albania", lat: 41.3275, lng: 19.8187 };
-const defaultDropoff: RoutePoint = { name: "Blloku, Tirana, Albania", lat: 41.3194, lng: 19.8157 };
+const defaultPickup: RoutePoint = { name: "", lat: 41.3275, lng: 19.8187 };
+const defaultDropoff: RoutePoint = { name: "", lat: 41.3194, lng: 19.8157 };
 
 function asLatLng(point: RoutePoint) {
   return { lat: point.lat, lng: point.lng };
@@ -29,15 +29,25 @@ function pinIcon(maps: any, color: string, scale = 9) {
   };
 }
 
-export default function LiveMap() {
+export default function LiveMap({ initialCustomerLocation }: { initialCustomerLocation?: RoutePoint | null }) {
   // fix: LiveMap now uses Google Maps directly, so the old react-leaflet dynamic imports and module-scope L.DivIcon SSR crash path are removed.
   const mapNode = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const markerRefs = useRef<any[]>([]);
+  const customerMarkerRef = useRef<any>(null);
+  const customerRadiusRef = useRef<any>(null);
   const directionsRef = useRef<any>(null);
   const [drivers, setDrivers] = useState<DriverLocation[]>([]);
   const [route, setRoute] = useState({ pickup: defaultPickup, dropoff: defaultDropoff });
+  const [customerLocation, setCustomerLocation] = useState<RoutePoint | null>(null);
   const [mapError, setMapError] = useState("");
+
+  useEffect(() => {
+    if (initialCustomerLocation) {
+      setCustomerLocation(initialCustomerLocation);
+      setRoute((current) => ({ ...current, pickup: initialCustomerLocation }));
+    }
+  }, [initialCustomerLocation]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
@@ -84,8 +94,20 @@ export default function LiveMap() {
       if (detail?.pickup && detail?.dropoff) setRoute(detail);
     }
 
+    function onCustomerLocation(event: Event) {
+      const detail = (event as CustomEvent<RoutePoint>).detail;
+      if (detail?.lat && detail?.lng) {
+        setCustomerLocation(detail);
+        setRoute((current) => ({ ...current, pickup: detail }));
+      }
+    }
+
     window.addEventListener("taxi-route-preview", onPreview);
-    return () => window.removeEventListener("taxi-route-preview", onPreview);
+    window.addEventListener("taxi-customer-location", onCustomerLocation);
+    return () => {
+      window.removeEventListener("taxi-route-preview", onPreview);
+      window.removeEventListener("taxi-customer-location", onCustomerLocation);
+    };
   }, []);
 
   useEffect(() => {
@@ -144,28 +166,60 @@ export default function LiveMap() {
         markerRefs.current.forEach((marker) => marker.setMap(null));
         markerRefs.current = [];
         directionsRef.current?.setMap(null);
+        customerMarkerRef.current?.setMap(null);
+        customerRadiusRef.current?.setMap(null);
 
         const bounds = new maps.LatLngBounds();
         const pickupLatLng = asLatLng(route.pickup);
         const dropoffLatLng = asLatLng(route.dropoff);
 
-        markerRefs.current.push(
-          new maps.Marker({
+        if (customerLocation) {
+          const center = asLatLng(customerLocation);
+          customerRadiusRef.current = new maps.Circle({
             map: mapRef.current,
-            position: pickupLatLng,
-            title: route.pickup.name || "Pickup",
-            icon: pinIcon(maps, "#111827", 8)
-          }),
-          new maps.Marker({
+            center,
+            radius: 1000,
+            strokeColor: "#2563eb",
+            strokeOpacity: 0.55,
+            strokeWeight: 2,
+            fillColor: "#2563eb",
+            fillOpacity: 0.08
+          });
+          customerMarkerRef.current = new maps.Marker({
             map: mapRef.current,
-            position: dropoffLatLng,
-            title: route.dropoff.name || "Destination",
+            position: center,
+            title: "Current location",
             icon: pinIcon(maps, "#2563eb", 8)
-          })
-        );
+          });
+          mapRef.current.setCenter(center);
+          mapRef.current.setZoom(15);
+          bounds.extend(center);
+        }
 
-        bounds.extend(pickupLatLng);
-        bounds.extend(dropoffLatLng);
+        if (route.pickup.name) {
+          markerRefs.current.push(
+            new maps.Marker({
+              map: mapRef.current,
+              position: pickupLatLng,
+              title: route.pickup.name,
+              icon: pinIcon(maps, "#111827", 8)
+            })
+          );
+          bounds.extend(pickupLatLng);
+        }
+
+        if (route.dropoff.name) {
+          markerRefs.current.push(
+            new maps.Marker({
+              map: mapRef.current,
+              position: dropoffLatLng,
+              title: route.dropoff.name,
+              icon: pinIcon(maps, "#2563eb", 8)
+            })
+          );
+          bounds.extend(dropoffLatLng);
+        }
+
 
         drivers.forEach((driver) => {
           const marker = new maps.Marker({
@@ -179,22 +233,26 @@ export default function LiveMap() {
           bounds.extend({ lat: driver.lat, lng: driver.lng });
         });
 
-        const service = new maps.DirectionsService();
-        const renderer = new maps.DirectionsRenderer({
-          map: mapRef.current,
-          suppressMarkers: true,
-          preserveViewport: true,
-          polylineOptions: { strokeColor: "#111827", strokeOpacity: 0.88, strokeWeight: 4 }
-        });
-        directionsRef.current = renderer;
-        service.route({ origin: pickupLatLng, destination: dropoffLatLng, travelMode: maps.TravelMode.DRIVING }, (result: any, status: string) => {
-          if (status === "OK" && result) renderer.setDirections(result);
-        });
+        if (route.pickup.name && route.dropoff.name) {
+          const service = new maps.DirectionsService();
+          const renderer = new maps.DirectionsRenderer({
+            map: mapRef.current,
+            suppressMarkers: true,
+            preserveViewport: true,
+            polylineOptions: { strokeColor: "#111827", strokeOpacity: 0.88, strokeWeight: 4 }
+          });
+          directionsRef.current = renderer;
+          service.route({ origin: pickupLatLng, destination: dropoffLatLng, travelMode: maps.TravelMode.DRIVING }, (result: any, status: string) => {
+            if (status === "OK" && result) renderer.setDirections(result);
+          });
 
-        mapRef.current.fitBounds(bounds, 80);
+          mapRef.current.fitBounds(bounds, 80);
+        } else if (!customerLocation && !bounds.isEmpty()) {
+          mapRef.current.fitBounds(bounds, 80);
+        }
       })
       .catch((error) => setMapError(error.message));
-  }, [drivers, route]);
+  }, [customerLocation, drivers, route]);
 
   return (
     <div className="map-wrap">
