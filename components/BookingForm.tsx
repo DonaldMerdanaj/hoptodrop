@@ -40,13 +40,13 @@ function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number) {
   return earthKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function calculateTaxiPrice(distance: number) {
+function calculateTaxiPrice(distance: number, multiplier = 1) {
   const minimumFare = 4;
   const includedKm = 3;
   const extraKmRate = 0.9;
 
-  if (distance <= includedKm) return minimumFare;
-  return minimumFare + (distance - includedKm) * extraKmRate;
+  const baseFare = distance <= includedKm ? minimumFare : minimumFare + (distance - includedKm) * extraKmRate;
+  return baseFare * multiplier;
 }
 
 function routePreview(origin: PlaceSelection, destination: PlaceSelection) {
@@ -85,8 +85,8 @@ export default function BookingForm({
 
   const tripKm = distanceKm(pickup.lat, pickup.lng, dropoff.lat, dropoff.lng);
   const estimatedPrice = useMemo(() => {
-    return Number(calculateTaxiPrice(tripKm).toFixed(2));
-  }, [tripKm]);
+    return Number(calculateTaxiPrice(tripKm, selectedDriver.multiplier).toFixed(2));
+  }, [selectedDriver.multiplier, tripKm]);
 
   useEffect(() => {
     if (step === "where" || step === "driver") routePreview(pickup, dropoff);
@@ -178,8 +178,12 @@ export default function BookingForm({
 
   function chooseDriver(driver: typeof nearbyDrivers[number]) {
     setSelectedDriver(driver);
+    setMessage(`${driver.rideClass} selected.`);
+  }
+
+  function continueWithDriver() {
     setStep("details");
-    setMessage(`${driver.name} selected. Add customer details to request the ride.`);
+    setMessage(`${selectedDriver.rideClass} selected. Add customer details to request the ride.`);
   }
 
   async function confirmRide() {
@@ -344,6 +348,10 @@ export default function BookingForm({
 
         {step === "driver" && (
           <>
+            <div className="fare-box">
+              <div><span>{tripKm.toFixed(1)} km trip</span><strong>Choose your ride</strong></div>
+              <div><span>From</span><strong>€{calculateTaxiPrice(tripKm).toFixed(2)}</strong></div>
+            </div>
             <div className="driver-pick-list">
               {nearbyDrivers.map((driver) => (
                 <button
@@ -353,15 +361,19 @@ export default function BookingForm({
                   onClick={() => chooseDriver(driver)}
                 >
                   <span className="driver-avatar"><Car size={22} /></span>
-                  <span>
+                  <span className="driver-option-copy">
                     <strong>{driver.rideClass}</strong>
-                    <small>{driver.name} - {driver.vehicle} - {driver.plate}</small>
-                    <small><Star size={12} /> {driver.rating} rating</small>
+                    <small>{driver.seats} seats - {driver.vehicle}</small>
+                    <small><Star size={12} /> {driver.rating} - {driver.eta} min pickup</small>
                   </span>
-                  <b>{driver.eta} min</b>
+                  <b>€{calculateTaxiPrice(tripKm, driver.multiplier).toFixed(2)}</b>
                 </button>
               ))}
             </div>
+            <button className="primary-btn request-btn" type="button" onClick={continueWithDriver}>
+              <Car size={19} />
+              Continue with {selectedDriver.rideClass} - €{estimatedPrice.toFixed(2)}
+            </button>
             <button className="secondary-btn compact-step-back" type="button" onClick={() => setStep("where")}>Back to location</button>
           </>
         )}

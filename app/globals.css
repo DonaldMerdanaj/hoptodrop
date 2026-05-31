@@ -91,12 +91,14 @@ button { cursor: pointer; }
 .route-line { grid-column: 1; grid-row: 2; width: 2px; height: 10px; background: var(--line-strong); justify-self: center; }
 
 .driver-pick-list, .ride-options { display: grid; gap: 8px; }
-.driver-pick-card { display: grid; grid-template-columns: 42px 1fr auto; align-items: center; gap: 10px; width: 100%; border: 1px solid var(--line); border-radius: 18px; padding: 11px; color: var(--ink); background: var(--surface); text-align: left; transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+.driver-pick-card { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; border: 1px solid var(--line); border-radius: 18px; padding: 11px; color: var(--ink); background: var(--surface); text-align: left; transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
 .driver-pick-card:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(17,24,39,.08); }
-.driver-pick-card.active { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.driver-pick-card.active { border-color: var(--ink); background: #f9fafb; box-shadow: inset 0 0 0 1px var(--ink), 0 12px 24px rgba(17,24,39,.08); }
 .driver-pick-card span:not(.driver-avatar) { display: grid; gap: 3px; }
 .driver-pick-card small, .ride-option small { color: var(--muted); font-size: 12px; }
-.driver-pick-card b { white-space: nowrap; }
+.driver-pick-card b { white-space: nowrap; font-size: 16px; }
+.driver-option-copy { min-width: 0; }
+.driver-option-copy strong, .driver-option-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .driver-avatar { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 999px; color: #fff; background: var(--ink); }
 
 .compact-rides { grid-template-columns: 1fr 1fr; }
