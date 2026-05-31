@@ -35,7 +35,6 @@ export default function LiveMap({ initialCustomerLocation }: { initialCustomerLo
   const mapRef = useRef<any>(null);
   const markerRefs = useRef<any[]>([]);
   const customerMarkerRef = useRef<any>(null);
-  const customerRadiusRef = useRef<any>(null);
   const directionsRef = useRef<any>(null);
   const [drivers, setDrivers] = useState<DriverLocation[]>([]);
   const [route, setRoute] = useState({ pickup: defaultPickup, dropoff: defaultDropoff });
@@ -167,7 +166,6 @@ export default function LiveMap({ initialCustomerLocation }: { initialCustomerLo
         markerRefs.current = [];
         directionsRef.current?.setMap(null);
         customerMarkerRef.current?.setMap(null);
-        customerRadiusRef.current?.setMap(null);
 
         const bounds = new maps.LatLngBounds();
         const pickupLatLng = asLatLng(route.pickup);
@@ -175,16 +173,6 @@ export default function LiveMap({ initialCustomerLocation }: { initialCustomerLo
 
         if (customerLocation) {
           const center = asLatLng(customerLocation);
-          customerRadiusRef.current = new maps.Circle({
-            map: mapRef.current,
-            center,
-            radius: 1000,
-            strokeColor: "#2563eb",
-            strokeOpacity: 0.55,
-            strokeWeight: 2,
-            fillColor: "#2563eb",
-            fillOpacity: 0.08
-          });
           customerMarkerRef.current = new maps.Marker({
             map: mapRef.current,
             position: center,
