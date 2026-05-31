@@ -96,14 +96,7 @@ export default function LiveMap() {
             mapTypeControl: false,
             streetViewControl: false,
             fullscreenControl: false,
-            clickableIcons: false,
-            styles: [
-              { featureType: "poi", stylers: [{ visibility: "off" }] },
-              { featureType: "transit", stylers: [{ visibility: "off" }] },
-              { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
-              { featureType: "water", elementType: "geometry", stylers: [{ color: "#d7ecff" }] },
-              { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#f5f8ff" }] }
-            ]
+            clickableIcons: false
           });
         }
 
