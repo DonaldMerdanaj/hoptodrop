@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 function normalizeEnvValue(value: string | undefined) {
-  return (value || "").trim().replace(/^["']|["']$/g, "");
+  return (value || "").trim().replace(/^["']|["']$/g, "").replace(/\s+/g, "");
 }
 
 const supabaseUrl = normalizeEnvValue(process.env.NEXT_PUBLIC_SUPABASE_URL);

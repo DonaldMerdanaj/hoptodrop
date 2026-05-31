@@ -10,6 +10,14 @@ type AuthFormProps = {
   redirectPath?: string;
 };
 
+function authMessage(errorMessage: string) {
+  if (errorMessage.toLowerCase().includes("invalid api key")) {
+    return "Invalid Supabase anon key. In Vercel, set NEXT_PUBLIC_SUPABASE_ANON_KEY to the anon public key from the same Supabase project as NEXT_PUBLIC_SUPABASE_URL, then redeploy.";
+  }
+
+  return errorMessage;
+}
+
 export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormProps) {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -25,7 +33,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
     }
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) setMessage(error.message);
+    if (error) setMessage(authMessage(error.message));
     else {
       setMessage("Signed in successfully.");
       onAuthChange?.();
@@ -45,7 +53,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
       password,
       options: { data: { role } }
     });
-    if (error) setMessage(error.message);
+    if (error) setMessage(authMessage(error.message));
     else {
       setMessage("Account created. Please check your email if confirmation is enabled.");
       onAuthChange?.();
@@ -71,7 +79,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
       }
     });
 
-    if (error) setMessage(error.message);
+    if (error) setMessage(authMessage(error.message));
   }
 
   async function submitAuth(e: React.FormEvent) {
