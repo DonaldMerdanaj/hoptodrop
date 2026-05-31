@@ -19,7 +19,7 @@ function AuthCallbackContent() {
       }
 
       const code = searchParams.get("code");
-      const next = searchParams.get("next") || "/dashboard";
+      const next = searchParams.get("next") || "/client/dashboard";
       const oauthError = searchParams.get("error_description") || searchParams.get("error");
 
       if (oauthError) {

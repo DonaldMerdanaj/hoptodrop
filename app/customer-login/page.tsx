@@ -13,7 +13,7 @@ export default function CustomerLoginPage() {
           <h1>Manage live rides</h1>
           <p>Track assigned drivers, fare estimates, payment method, and ride status.</p>
         </div>
-        <AuthForm role="customer" redirectPath="/dashboard" />
+        <AuthForm role="customer" redirectPath="/client/dashboard" />
         <CustomerBookings />
       </section>
       <BottomNav />
