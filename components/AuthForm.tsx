@@ -26,6 +26,10 @@ function authRedirectFor(role: "customer" | "driver", redirectPath?: string) {
   return redirectPath || (role === "driver" ? "/driver-login" : "/client/dashboard");
 }
 
+function confirmationRedirectUrl(role: "customer" | "driver", redirectPath?: string) {
+  return `${window.location.origin}/auth/callback?next=${encodeURIComponent(authRedirectFor(role, redirectPath))}`;
+}
+
 export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormProps) {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -56,13 +60,12 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
       return;
     }
 
-    const nextPath = authRedirectFor(role, redirectPath);
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         // fix: send a real Supabase confirmation link that returns to the correct app page after email verification.
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
+        emailRedirectTo: confirmationRedirectUrl(role, redirectPath),
         data: { role }
       }
     });
@@ -71,6 +74,31 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
       setMessage("Confirmation link sent. Open the email link to verify this account, then log in.");
       setMode("login");
     }
+  }
+
+  async function resendConfirmation() {
+    if (!email) {
+      setMessage("Enter your email address first, then resend the confirmation link.");
+      return;
+    }
+
+    setMessage("Sending confirmation link...");
+    if (!isSupabaseConfigured || !supabase) {
+      setMessage("Supabase is required for email confirmation.");
+      return;
+    }
+
+    // fix: allow users to request another Supabase signup confirmation email if the first link was not received.
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: {
+        emailRedirectTo: confirmationRedirectUrl(role, redirectPath)
+      }
+    });
+
+    if (error) setMessage(authMessage(error.message));
+    else setMessage("Confirmation link sent again. Check inbox and spam/junk.");
   }
 
   async function signInWithGoogle() {
@@ -114,6 +142,9 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
         onClick={() => setMode((current) => (current === "login" ? "signup" : "login"))}
       >
         {mode === "login" ? "Don't have an account? Sign up" : "Already have an account? Log in"}
+      </button>
+      <button className="auth-toggle" type="button" onClick={resendConfirmation}>
+        Resend confirmation email
       </button>
       <small className="auth-note">Your email is your username.</small>
       {message && <p className="status-message">{message}</p>}
