@@ -121,6 +121,17 @@ button { cursor: pointer; }
 .auth-form-title { margin: 0; font-size: 18px; }
 .auth-toggle { border: 0; background: transparent; color: var(--ink); font-weight: 900; text-decoration: underline; }
 .auth-note { color: var(--muted); font-size: 12px; text-align: center; }
+.callback-card { margin-top: 18vh; }
+.dashboard-card { display: grid; gap: 14px; }
+.profile-panel { display: grid; grid-template-columns: 58px 1fr; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface-soft); }
+.profile-panel img, .profile-fallback { width: 58px; height: 58px; border-radius: 999px; }
+.profile-panel img { object-fit: cover; border: 1px solid var(--line); }
+.profile-fallback { display: grid; place-items: center; color: #fff; background: var(--ink); }
+.profile-panel div { display: grid; gap: 4px; min-width: 0; }
+.profile-panel strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 18px; }
+.profile-panel span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 13px; }
+.dashboard-actions { display: grid; gap: 10px; }
+.dashboard-actions .secondary-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
 .driver-controls, .driver-registration { margin-top: 18px; }
 .driver-login-note, .account-strip, .form-section, .driver-status, .list-item, .job-card { border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
 .driver-login-note, .account-strip { display: grid; gap: 5px; margin-top: 14px; padding: 12px; }

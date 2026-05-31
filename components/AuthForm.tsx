@@ -1,9 +1,17 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
-export default function AuthForm({ role, onAuthChange }: { role: "customer" | "driver"; onAuthChange?: () => void }) {
+type AuthFormProps = {
+  role: "customer" | "driver";
+  onAuthChange?: () => void;
+  redirectPath?: string;
+};
+
+export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormProps) {
+  const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,6 +29,7 @@ export default function AuthForm({ role, onAuthChange }: { role: "customer" | "d
     else {
       setMessage("Signed in successfully.");
       onAuthChange?.();
+      if (redirectPath) router.replace(redirectPath);
     }
   }
 
@@ -40,6 +49,7 @@ export default function AuthForm({ role, onAuthChange }: { role: "customer" | "d
     else {
       setMessage("Account created. Please check your email if confirmation is enabled.");
       onAuthChange?.();
+      if (redirectPath) router.replace(redirectPath);
     }
   }
 
@@ -53,7 +63,7 @@ export default function AuthForm({ role, onAuthChange }: { role: "customer" | "d
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/${role === "driver" ? "driver-login" : "customer-login"}`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectPath || (role === "driver" ? "/driver-login" : "/dashboard"))}`,
         queryParams: {
           access_type: "offline",
           prompt: "consent"
