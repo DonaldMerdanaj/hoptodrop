@@ -18,6 +18,17 @@ function asLatLng(point: RoutePoint) {
   return { lat: point.lat, lng: point.lng };
 }
 
+function pinIcon(maps: any, color: string, scale = 9) {
+  return {
+    path: maps.SymbolPath.CIRCLE,
+    fillColor: color,
+    fillOpacity: 1,
+    strokeColor: "#ffffff",
+    strokeWeight: 4,
+    scale
+  };
+}
+
 export default function LiveMap() {
   // fix: LiveMap now uses Google Maps directly, so the old react-leaflet dynamic imports and module-scope L.DivIcon SSR crash path are removed.
   const mapNode = useRef<HTMLDivElement | null>(null);
@@ -96,7 +107,15 @@ export default function LiveMap() {
             mapTypeControl: false,
             streetViewControl: false,
             fullscreenControl: false,
-            clickableIcons: false
+            clickableIcons: false,
+            styles: [
+              { featureType: "poi.business", stylers: [{ visibility: "off" }] },
+              { featureType: "poi.attraction", stylers: [{ visibility: "off" }] },
+              { featureType: "poi.school", stylers: [{ visibility: "off" }] },
+              { featureType: "transit", stylers: [{ visibility: "off" }] },
+              { featureType: "road", elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+              { featureType: "administrative", elementType: "labels", stylers: [{ visibility: "simplified" }] }
+            ]
           });
         }
 
@@ -134,14 +153,14 @@ export default function LiveMap() {
           new maps.Marker({
             map: mapRef.current,
             position: pickupLatLng,
-            title: route.pickup.name,
-            icon: { path: maps.SymbolPath.CIRCLE, fillColor: "#111827", fillOpacity: 1, strokeColor: "#ffffff", strokeWeight: 4, scale: 9 }
+            title: route.pickup.name || "Pickup",
+            icon: pinIcon(maps, "#111827", 8)
           }),
           new maps.Marker({
             map: mapRef.current,
             position: dropoffLatLng,
             title: route.dropoff.name || "Destination",
-            icon: { path: maps.SymbolPath.CIRCLE, fillColor: "#2563eb", fillOpacity: 1, strokeColor: "#ffffff", strokeWeight: 4, scale: 9 }
+            icon: pinIcon(maps, "#2563eb", 8)
           })
         );
 
@@ -153,8 +172,8 @@ export default function LiveMap() {
             map: mapRef.current,
             position: { lat: driver.lat, lng: driver.lng },
             title: `${driver.driver_name} - ${driver.vehicle || "Taxi"}`,
-            label: { text: "CAR", color: "#ffffff", fontSize: "10px", fontWeight: "900" },
-            icon: { path: maps.SymbolPath.CIRCLE, fillColor: driver.status === "busy" ? "#6b7280" : "#111827", fillOpacity: 1, strokeColor: "#ffffff", strokeWeight: 4, scale: 16 }
+            label: { text: "TAXI", color: "#ffffff", fontSize: "9px", fontWeight: "900" },
+            icon: pinIcon(maps, driver.status === "busy" ? "#6b7280" : "#111827", 15)
           });
           markerRefs.current.push(marker);
           bounds.extend({ lat: driver.lat, lng: driver.lng });
@@ -165,7 +184,7 @@ export default function LiveMap() {
           map: mapRef.current,
           suppressMarkers: true,
           preserveViewport: true,
-          polylineOptions: { strokeColor: "#111827", strokeOpacity: 0.9, strokeWeight: 5 }
+          polylineOptions: { strokeColor: "#111827", strokeOpacity: 0.88, strokeWeight: 4 }
         });
         directionsRef.current = renderer;
         service.route({ origin: pickupLatLng, destination: dropoffLatLng, travelMode: maps.TravelMode.DRIVING }, (result: any, status: string) => {
