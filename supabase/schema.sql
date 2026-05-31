@@ -75,9 +75,20 @@ create table if not exists public.driver_profiles (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.booking_route_points (
+  id uuid primary key default uuid_generate_v4(),
+  booking_id uuid not null references public.bookings(id) on delete cascade,
+  driver_id uuid not null references auth.users(id) on delete cascade,
+  lat double precision not null,
+  lng double precision not null,
+  phase text not null default 'accepted' check (phase in ('assigned','accepted','started','completed')),
+  recorded_at timestamptz not null default now()
+);
+
 alter table public.bookings enable row level security;
 alter table public.driver_locations enable row level security;
 alter table public.driver_profiles enable row level security;
+alter table public.booking_route_points enable row level security;
 
 alter table public.bookings drop constraint if exists bookings_status_check;
 alter table public.bookings add constraint bookings_status_check
@@ -114,8 +125,21 @@ drop policy if exists "Drivers can accept and progress own bookings" on public.b
 create policy "Drivers can accept and progress own bookings"
 on public.bookings for update
 to authenticated
-using (status = 'pending' or driver_id = auth.uid())
+using (status in ('pending','assigned') or driver_id = auth.uid())
 with check (driver_id = auth.uid());
+
+drop policy if exists "Authenticated users can read booking route points" on public.booking_route_points;
+drop policy if exists "Drivers can create own booking route points" on public.booking_route_points;
+
+create policy "Authenticated users can read booking route points"
+on public.booking_route_points for select
+to authenticated
+using (true);
+
+create policy "Drivers can create own booking route points"
+on public.booking_route_points for insert
+to authenticated
+with check (auth.uid() = driver_id);
 
 create policy "Anyone can read online drivers"
 on public.driver_locations for select
@@ -155,4 +179,26 @@ to authenticated
 using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
 with check ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
-alter publication supabase_realtime add table public.driver_locations;
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'driver_locations'
+  ) then
+    alter publication supabase_realtime add table public.driver_locations;
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'bookings'
+  ) then
+    alter publication supabase_realtime add table public.bookings;
+  end if;
+
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'booking_route_points'
+  ) then
+    alter publication supabase_realtime add table public.booking_route_points;
+  end if;
+end $$;

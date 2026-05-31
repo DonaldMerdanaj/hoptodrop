@@ -96,6 +96,27 @@ export default function DriverLocationSender() {
           updated_at: new Date().toISOString()
         });
 
+        // fix: store the driver's live route trail for the active assigned/accepted/started ride.
+        const { data: activeBooking } = await client
+          .from("bookings")
+          .select("id, status")
+          .eq("driver_id", user.id)
+          .in("status", ["assigned", "accepted", "started"])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (activeBooking) {
+          await client.from("booking_route_points").insert({
+            booking_id: activeBooking.id,
+            driver_id: user.id,
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            phase: activeBooking.status,
+            recorded_at: new Date().toISOString()
+          });
+        }
+
         if (error) setMessage(error.message);
         else {
           setOnline(true);

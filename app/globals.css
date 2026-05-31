@@ -186,6 +186,8 @@ button { cursor: pointer; }
 .driver-dashboard-card .job-card { grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .driver-dashboard-card .job-card strong, .driver-dashboard-card .job-card p { overflow: hidden; text-overflow: ellipsis; }
 .driver-dashboard-card .job-card .compact-btn { width: 100%; }
+.driver-job-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.compact-history-card { opacity: .86; }
 .driver-online-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .driver-form-intro { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: start; gap: 9px; margin-bottom: 12px; }
 .driver-form-intro strong { display: block; font-size: 15px; }

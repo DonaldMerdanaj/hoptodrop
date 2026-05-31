@@ -165,6 +165,45 @@ export default function BookingForm({
     };
   }, [open, pickup]);
 
+  useEffect(() => {
+    if (!bookingId || !isSupabaseConfigured || !supabase) return;
+
+    const client = supabase;
+    const channel = client
+      .channel(`customer-booking-${bookingId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "bookings", filter: `id=eq.${bookingId}` },
+        (payload) => {
+          const booking = payload.new as { status?: string; driver_name?: string | null };
+          // fix: customer booking sheet now follows the real driver accept/pickup/job-done lifecycle.
+          if (booking.status === "accepted") {
+            setStep("assigned");
+            setMessage(`${booking.driver_name || "Your driver"} accepted and is driving to pickup.`);
+          }
+          if (booking.status === "started") {
+            setStep("started");
+            setMessage("Client picked up. Ride is in progress.");
+          }
+          if (booking.status === "completed") {
+            setStep("completed");
+            setMessage("Ride completed. Thanks for riding with HopToDrop.");
+          }
+          if (booking.status === "cancelled") {
+            setStep("driver");
+            setSelectedDriver(null);
+            setBookingId(null);
+            setMessage("Driver declined this ride. Please choose another online taxi.");
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      client.removeChannel(channel);
+    };
+  }, [bookingId]);
+
   if (!open) return null;
 
   function findDrivers() {
@@ -298,7 +337,7 @@ export default function BookingForm({
     }
 
     setStep("assigned");
-    setMessage(`Request sent to ${selectedDriver.driver_name}.`);
+    setMessage(`Request sent to ${selectedDriver.driver_name}. Waiting for accept.`);
   }
 
   async function completeRide() {
@@ -482,7 +521,7 @@ export default function BookingForm({
               <Navigation size={22} />
               <div>
                 <strong>{selectedDriver ? `${selectedDriver.driver_name} assigned` : "Driver assigned"}</strong>
-                <span>Your request was sent to the selected online driver.</span>
+                <span>Waiting for the driver to accept. When accepted, the map follows the taxi to pickup.</span>
               </div>
             </div>
           </>

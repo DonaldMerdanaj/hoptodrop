@@ -57,3 +57,13 @@ export type BookingPayload = {
   payment_method: string;
   estimated_price: number;
 };
+
+export type BookingRoutePoint = {
+  id: string;
+  booking_id: string;
+  driver_id: string;
+  lat: number;
+  lng: number;
+  phase: "assigned" | "accepted" | "started" | "completed";
+  recorded_at: string;
+};
