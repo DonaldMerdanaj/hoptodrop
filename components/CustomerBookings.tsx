@@ -19,6 +19,25 @@ export default function CustomerBookings() {
     }
 
     load();
+
+    if (!isSupabaseConfigured || !supabase) return;
+    const client = supabase;
+    const channel = client
+      .channel("customer-bookings")
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, (payload) => {
+        const next = payload.new as Booking;
+        if (!next?.id) return;
+        setBookings((current) => {
+          const exists = current.some((booking) => booking.id === next.id);
+          if (exists) return current.map((booking) => (booking.id === next.id ? next : booking));
+          return [next, ...current];
+        });
+      })
+      .subscribe();
+
+    return () => {
+      client.removeChannel(channel);
+    };
   }, []);
 
   return (
@@ -28,8 +47,8 @@ export default function CustomerBookings() {
         <article className="list-item" key={booking.id}>
           <div>
             <strong>{booking.pickup} to {booking.dropoff}</strong>
-            <p>{booking.ride_class} | {booking.passengers} rider | {booking.payment_method} | EUR {booking.estimated_price}</p>
-            {booking.driver_name && <p>{booking.driver_name} is {booking.driver_eta} min away in {booking.driver_vehicle}</p>}
+            <p>{booking.ride_class} | {booking.passengers} rider | {booking.payment_method} | €{Number(booking.estimated_price).toFixed(2)}</p>
+            {booking.driver_name && <p>{booking.driver_name} accepted your ride in {booking.driver_vehicle}</p>}
           </div>
           <span className={`status-pill ${booking.status}`}>{booking.status}</span>
         </article>

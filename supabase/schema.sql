@@ -17,13 +17,24 @@ create table if not exists public.bookings (
   vehicle_type text not null,
   ride_class text not null default 'Taxi',
   payment_method text not null default 'Cash',
+  driver_id uuid references auth.users(id) on delete set null,
   driver_name text,
   driver_vehicle text,
   driver_eta integer,
   estimated_price numeric not null default 0,
-  status text not null default 'pending' check (status in ('pending','accepted','assigned','completed','cancelled')),
+  status text not null default 'pending' check (status in ('pending','accepted','assigned','arrived','started','completed','cancelled')),
+  accepted_at timestamptz,
+  arrived_at timestamptz,
+  started_at timestamptz,
+  completed_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+alter table public.bookings add column if not exists driver_id uuid references auth.users(id) on delete set null;
+alter table public.bookings add column if not exists accepted_at timestamptz;
+alter table public.bookings add column if not exists arrived_at timestamptz;
+alter table public.bookings add column if not exists started_at timestamptz;
+alter table public.bookings add column if not exists completed_at timestamptz;
 
 create table if not exists public.driver_locations (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -68,6 +79,10 @@ alter table public.bookings enable row level security;
 alter table public.driver_locations enable row level security;
 alter table public.driver_profiles enable row level security;
 
+alter table public.bookings drop constraint if exists bookings_status_check;
+alter table public.bookings add constraint bookings_status_check
+check (status in ('pending','accepted','assigned','arrived','started','completed','cancelled'));
+
 drop policy if exists "Anyone can create bookings" on public.bookings;
 drop policy if exists "Anyone can read bookings" on public.bookings;
 
@@ -93,6 +108,14 @@ on public.bookings for update
 to authenticated
 using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
 with check ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
+drop policy if exists "Drivers can accept and progress own bookings" on public.bookings;
+
+create policy "Drivers can accept and progress own bookings"
+on public.bookings for update
+to authenticated
+using (status = 'pending' or driver_id = auth.uid())
+with check (driver_id = auth.uid());
 
 create policy "Anyone can read online drivers"
 on public.driver_locations for select

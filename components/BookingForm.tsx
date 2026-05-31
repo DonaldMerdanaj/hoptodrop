@@ -201,9 +201,9 @@ export default function BookingForm({
       vehicle_type: selectedDriver.vehicle,
       ride_class: selectedDriver.rideClass,
       payment_method: paymentMethod,
-      driver_name: selectedDriver.name,
-      driver_vehicle: `${selectedDriver.vehicle} ${selectedDriver.plate}`,
-      driver_eta: selectedDriver.eta,
+      driver_name: null,
+      driver_vehicle: null,
+      driver_eta: null,
       estimated_price: estimatedPrice
     };
 
@@ -216,7 +216,7 @@ export default function BookingForm({
 
       const { data, error } = await supabase
         .from("bookings")
-        .insert({ ...booking, customer_id: userData.user.id, status: "assigned" })
+        .insert({ ...booking, customer_id: userData.user.id, status: "pending" })
         .select("id")
         .single();
 
@@ -229,7 +229,7 @@ export default function BookingForm({
     }
 
     setStep("assigned");
-    setMessage(`${selectedDriver.name} is coming to you. ${selectedDriver.eta} min pickup.`);
+    setMessage("Request sent. Approved drivers can now accept it.");
   }
 
   async function completeRide() {
@@ -250,8 +250,8 @@ export default function BookingForm({
   const title = {
     where: "Where to?",
     driver: "Choose taxi",
-    details: "Customer details",
-    assigned: "Driver arriving",
+    details: "Request ride",
+    assigned: "Finding driver",
     started: "Ride in progress",
     completed: "Ride completed"
   }[step];
@@ -395,13 +395,9 @@ export default function BookingForm({
             <div className="trip-status-card">
               <Navigation size={22} />
               <div>
-                <strong>{selectedDriver.name} is heading to your pickup</strong>
-                <span>{selectedDriver.vehicle} - {selectedDriver.plate} - {selectedDriver.eta} min</span>
+                <strong>Finding a driver</strong>
+                <span>Your request is live for approved drivers nearby.</span>
               </div>
-            </div>
-            <div className="trip-actions">
-              <button className="secondary-btn" type="button"><Phone size={17} /> Call driver</button>
-              <button className="primary-btn" type="button" onClick={() => setStep("started")}>Start ride</button>
             </div>
           </>
         )}

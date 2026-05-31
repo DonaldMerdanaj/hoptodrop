@@ -6,7 +6,7 @@ import TopNav from "@/components/TopNav";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type { Booking, BookingStatus } from "@/lib/types";
 
-const statuses: BookingStatus[] = ["pending", "accepted", "assigned", "completed", "cancelled"];
+const statuses: BookingStatus[] = ["pending", "accepted", "assigned", "arrived", "started", "completed", "cancelled"];
 
 type DriverProfile = {
   id: string;
@@ -103,7 +103,7 @@ export default function AdminDashboard() {
               <div>
                 <strong>{booking.pickup} to {booking.dropoff}</strong>
                 <p>{booking.customer_name} | {booking.customer_phone}</p>
-                <p>{booking.ride_class} | {booking.payment_method} | EUR {booking.estimated_price}</p>
+                <p>{booking.ride_class} | {booking.payment_method} | €{Number(booking.estimated_price).toFixed(2)}</p>
                 {booking.driver_name && <p>{booking.driver_name} | {booking.driver_vehicle} | {booking.driver_eta} min pickup</p>}
               </div>
               <select value={booking.status} onChange={(event) => updateStatus(booking.id, event.target.value as BookingStatus)}>

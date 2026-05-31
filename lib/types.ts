@@ -8,7 +8,7 @@ export type DriverLocation = {
   updated_at: string;
 };
 
-export type BookingStatus = "pending" | "accepted" | "assigned" | "completed" | "cancelled";
+export type BookingStatus = "pending" | "accepted" | "assigned" | "arrived" | "started" | "completed" | "cancelled";
 
 export type Booking = {
   id: string;
@@ -27,11 +27,16 @@ export type Booking = {
   vehicle_type: string;
   ride_class: string;
   payment_method: string;
+  driver_id: string | null;
   driver_name: string | null;
   driver_vehicle: string | null;
   driver_eta: number | null;
   estimated_price: number;
   status: BookingStatus;
+  accepted_at: string | null;
+  arrived_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
   created_at: string;
 };
 
