@@ -1,19 +1,54 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import AdminDashboard from "@/components/AdminDashboard";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
-export const dynamic = "force-dynamic";
+export default function AdminPage() {
+  const router = useRouter();
+  const [allowed, setAllowed] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-export default async function AdminPage() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) redirect("/");
+  useEffect(() => {
+    async function checkAdmin() {
+      if (!isSupabaseConfigured || !supabase) {
+        router.replace("/");
+        return;
+      }
 
-  const supabase = createServerComponentClient({ cookies });
-  const { data } = await supabase.auth.getSession();
-  const user = data.session?.user;
+      // fix: protect admin with the same persisted browser session used by customer and driver login.
+      const { data } = await supabase.auth.getSession();
+      const user = data.session?.user;
 
-  // fix: protect admin server-side and allow only users with admin metadata.
-  if (!user || user.user_metadata?.role !== "admin") redirect("/");
+      if (!user) {
+        router.replace("/customer-login");
+        return;
+      }
 
-  return <AdminDashboard />;
+      if (user.user_metadata?.role !== "admin") {
+        router.replace("/");
+        return;
+      }
+
+      setAllowed(true);
+      setLoading(false);
+    }
+
+    checkAdmin();
+  }, [router]);
+
+  if (loading) {
+    return (
+      <main className="admin-page">
+        <section className="admin-card">
+          <div className="eyebrow">Dispatch</div>
+          <h1>Admin dashboard</h1>
+          <p className="status-message">Checking admin access...</p>
+        </section>
+      </main>
+    );
+  }
+
+  return allowed ? <AdminDashboard /> : null;
 }
