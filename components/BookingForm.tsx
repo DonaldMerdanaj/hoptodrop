@@ -289,7 +289,7 @@ export default function BookingForm({
   }
 
   return (
-    <section className={typingMode ? "ride-sheet typing-mode" : "ride-sheet"}>
+    <section className={`${typingMode ? "ride-sheet typing-mode" : "ride-sheet"} step-${step}`}>
       <button
         className="sheet-drag-handle"
         type="button"
