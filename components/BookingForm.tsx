@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Car, CheckCircle2, Clock3, CreditCard, MapPin, Navigation, Phone, Search, Star } from "lucide-react";
 import PlaceInput, { type PlaceSelection } from "@/components/PlaceInput";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
@@ -63,8 +63,10 @@ export default function BookingForm({
   const [passengers, setPassengers] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [typingMode, setTypingMode] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [message, setMessage] = useState("");
   const [bookingId, setBookingId] = useState<string | null>(null);
+  const dragStartY = useRef<number | null>(null);
 
   const tripKm = distanceKm(pickup.lat, pickup.lng, dropoff.lat, dropoff.lng);
   const estimatedPrice = useMemo(() => {
@@ -103,6 +105,7 @@ export default function BookingForm({
   useEffect(() => {
     if (open) {
       setStep("where");
+      setCollapsed(false);
       setMessage("");
       setBookingId(null);
     }
@@ -197,8 +200,49 @@ export default function BookingForm({
     completed: "Ride completed"
   }[step];
 
+  const collapsedTitle = step === "where" && !dropoff.name ? "Where to?" : title;
+  const collapsedSubtitle = dropoff.name ? `${pickup.name} to ${dropoff.name}` : pickup.name;
+
+  function startSheetDrag(event: React.PointerEvent<HTMLElement>) {
+    dragStartY.current = event.clientY;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function endSheetDrag(event: React.PointerEvent<HTMLElement>) {
+    if (dragStartY.current === null) return;
+
+    const dragDistance = event.clientY - dragStartY.current;
+    if (dragDistance > 45) setCollapsed(true);
+    if (dragDistance < -35) setCollapsed(false);
+    dragStartY.current = null;
+  }
+
+  if (collapsed) {
+    return (
+      <section className="ride-sheet minimized" onPointerDown={startSheetDrag} onPointerUp={endSheetDrag}>
+        <button className="sheet-drag-handle" type="button" aria-label="Expand booking form" onClick={() => setCollapsed(false)} />
+        <button className="minimized-sheet" type="button" onClick={() => setCollapsed(false)}>
+          <Search size={21} />
+          <span>
+            <strong>{collapsedTitle}</strong>
+            <small>{collapsedSubtitle}</small>
+          </span>
+          <b>{selectedDriver.eta} min</b>
+        </button>
+      </section>
+    );
+  }
+
   return (
     <section className={typingMode ? "ride-sheet typing-mode" : "ride-sheet"}>
+      <button
+        className="sheet-drag-handle"
+        type="button"
+        aria-label="Minimize booking form"
+        onPointerDown={startSheetDrag}
+        onPointerUp={endSheetDrag}
+        onClick={() => setCollapsed(true)}
+      />
       <div className="sheet-header compact-header">
         <div>
           <span className="eyebrow">{step === "where" ? "Location" : step === "driver" ? "Taxi" : step === "details" ? "Details" : "Live trip"}</span>
