@@ -39,7 +39,6 @@ button { cursor: pointer; }
 .map-overlay { position: absolute; inset: 0; z-index: 2; pointer-events: none; background: linear-gradient(to bottom, rgba(248,250,252,.46) 0%, rgba(248,250,252,0) 22%, rgba(248,250,252,0) 68%, rgba(248,250,252,.78) 100%); }
 
 .ride-launcher { position: absolute; z-index: 18; left: 12px; right: 12px; bottom: calc(82px + env(safe-area-inset-bottom)); padding: 10px; border: 1px solid var(--line); border-radius: 24px; color: var(--ink); background: var(--surface); box-shadow: 0 18px 48px rgba(17,24,39,.16); }
-.ride-launcher.typing-mode { bottom: calc(44vh + env(safe-area-inset-bottom)); z-index: 60; }
 .where-to-pill { display: grid; grid-template-columns: 34px 1fr 30px; align-items: center; gap: 10px; min-height: 58px; width: 100%; padding: 0 16px; border: 1px solid var(--line-strong); border-radius: 18px; color: var(--ink); background: var(--surface); text-align: left; transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease; }
 .where-to-pill:hover { transform: translateY(-1px); border-color: #9ca3af; box-shadow: 0 12px 24px rgba(17,24,39,.08); }
 .where-to-pill svg { color: var(--ink); }
