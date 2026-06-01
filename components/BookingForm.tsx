@@ -169,38 +169,55 @@ export default function BookingForm({
     if (!bookingId || !isSupabaseConfigured || !supabase) return;
 
     const client = supabase;
+    function applyBookingStatus(booking: { status?: string; driver_name?: string | null }) {
+      // fix: customer booking sheet now follows the real driver accept/pickup/job-done lifecycle.
+      if (booking.status === "accepted") {
+        setStep("assigned");
+        setMessage(`${booking.driver_name || "Your driver"} accepted and is driving to pickup.`);
+      }
+      if (booking.status === "started") {
+        setStep("started");
+        setMessage("Client picked up. Ride is in progress.");
+      }
+      if (booking.status === "completed") {
+        setStep("completed");
+        setMessage("Ride completed. Thanks for riding with HopToDrop.");
+      }
+      if (booking.status === "cancelled") {
+        setStep("driver");
+        setSelectedDriver(null);
+        setBookingId(null);
+        setMessage("Driver declined this ride. Please choose another online taxi.");
+      }
+    }
+
+    async function refreshBookingStatus() {
+      const { data } = await client
+        .from("bookings")
+        .select("status, driver_name")
+        .eq("id", bookingId)
+        .maybeSingle();
+      if (data) applyBookingStatus(data);
+    }
+
     const channel = client
       .channel(`customer-booking-${bookingId}`)
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "bookings", filter: `id=eq.${bookingId}` },
         (payload) => {
-          const booking = payload.new as { status?: string; driver_name?: string | null };
-          // fix: customer booking sheet now follows the real driver accept/pickup/job-done lifecycle.
-          if (booking.status === "accepted") {
-            setStep("assigned");
-            setMessage(`${booking.driver_name || "Your driver"} accepted and is driving to pickup.`);
-          }
-          if (booking.status === "started") {
-            setStep("started");
-            setMessage("Client picked up. Ride is in progress.");
-          }
-          if (booking.status === "completed") {
-            setStep("completed");
-            setMessage("Ride completed. Thanks for riding with HopToDrop.");
-          }
-          if (booking.status === "cancelled") {
-            setStep("driver");
-            setSelectedDriver(null);
-            setBookingId(null);
-            setMessage("Driver declined this ride. Please choose another online taxi.");
-          }
+          applyBookingStatus(payload.new as { status?: string; driver_name?: string | null });
         }
       )
       .subscribe();
 
+    // fix: poll booking status as a fallback so customers see accept/pickup/done promptly if realtime lags.
+    refreshBookingStatus();
+    const statusTimer = window.setInterval(refreshBookingStatus, 2500);
+
     return () => {
       client.removeChannel(channel);
+      window.clearInterval(statusTimer);
     };
   }, [bookingId]);
 
@@ -325,7 +342,7 @@ export default function BookingForm({
       const { data, error } = await supabase
         .from("bookings")
         .insert({ ...booking, customer_id: userData.user.id, status: "assigned" })
-        .select("id")
+        .select("id, status")
         .single();
 
       if (error) {

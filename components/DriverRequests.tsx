@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Booking } from "@/lib/types";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -12,35 +12,40 @@ export default function DriverRequests() {
   const [message, setMessage] = useState("");
   const driverIdRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    async function load() {
-      if (!isSupabaseConfigured || !supabase) {
-        setMessage("Connect Supabase to receive real ride requests.");
-        return;
-      }
-
-      const { data: userData } = await supabase.auth.getUser();
-      const currentDriverId = userData.user?.id || emptyDriverId;
-      driverIdRef.current = userData.user?.id || null;
-
-      const { data } = await supabase
-        .from("bookings")
-        .select("*")
-        .or(`status.eq.pending,driver_id.eq.${currentDriverId}`)
-        .in("status", ["pending", "assigned", "accepted", "started"])
-        .order("created_at", { ascending: false });
-      if (data) setBookings(data as Booking[]);
-
-      const { data: completed } = await supabase
-        .from("bookings")
-        .select("*")
-        .eq("driver_id", currentDriverId)
-        .in("status", ["completed", "cancelled"])
-        .order("created_at", { ascending: false })
-        .limit(8);
-      if (completed) setCompletedBookings(completed as Booking[]);
+  const load = useCallback(async (showErrors = true) => {
+    if (!isSupabaseConfigured || !supabase) {
+      if (showErrors) setMessage("Connect Supabase to receive real ride requests.");
+      return;
     }
 
+    const { data: userData } = await supabase.auth.getUser();
+    const currentDriverId = userData.user?.id || emptyDriverId;
+    driverIdRef.current = userData.user?.id || null;
+
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("*")
+      .or(`status.eq.pending,driver_id.eq.${currentDriverId}`)
+      .in("status", ["pending", "assigned", "accepted", "started"])
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      if (showErrors) setMessage(error.message);
+    } else {
+      setBookings((data || []) as Booking[]);
+    }
+
+    const { data: completed } = await supabase
+      .from("bookings")
+      .select("*")
+      .eq("driver_id", currentDriverId)
+      .in("status", ["completed", "cancelled"])
+      .order("created_at", { ascending: false })
+      .limit(8);
+    if (completed) setCompletedBookings(completed as Booking[]);
+  }, []);
+
+  useEffect(() => {
     load();
 
     if (!isSupabaseConfigured || !supabase) return;
@@ -72,10 +77,19 @@ export default function DriverRequests() {
       })
       .subscribe();
 
+    // fix: poll as a fast fallback so driver requests appear even if mobile realtime is delayed or sleeping.
+    const refreshTimer = window.setInterval(() => load(false), 2500);
+    const refreshOnFocus = () => load(false);
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnFocus);
+
     return () => {
       client.removeChannel(channel);
+      window.clearInterval(refreshTimer);
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnFocus);
     };
-  }, []);
+  }, [load]);
 
   async function acceptRide(id: string) {
     if (!isSupabaseConfigured || !supabase) {
