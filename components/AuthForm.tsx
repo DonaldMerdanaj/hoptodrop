@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { clearAccountMode, getAccountMode, setAccountMode } from "@/lib/accountMode";
+import { clearAccountMode, setAccountMode } from "@/lib/accountMode";
 import { ensureCustomerProfile } from "@/lib/customerProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -44,9 +44,8 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
     if (!supabase) return;
 
     const { data } = await supabase.auth.getSession();
-    const currentMode = getAccountMode();
-    if (data.session?.user && currentMode && currentMode !== role) {
-      // fix: switching between customer and driver portals starts from a clean Supabase session.
+    if (data.session?.user) {
+      // fix: every explicit portal login starts clean so stale customer/driver sessions cannot block auth.
       await supabase.auth.signOut();
       clearAccountMode();
     }
