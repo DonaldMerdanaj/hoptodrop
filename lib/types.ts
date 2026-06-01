@@ -67,3 +67,13 @@ export type BookingRoutePoint = {
   phase: "assigned" | "accepted" | "started" | "completed";
   recorded_at: string;
 };
+
+export type CustomerProfile = {
+  id: string;
+  email: string;
+  full_name: string;
+  phone: string;
+  avatar_url: string;
+  created_at: string;
+  updated_at: string;
+};

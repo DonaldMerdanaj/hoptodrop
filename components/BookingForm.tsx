@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Car, CheckCircle2, Clock3, LocateFixed, MapPin, Navigation, Search, Star } from "lucide-react";
 import PlaceInput, { type PlaceSelection } from "@/components/PlaceInput";
+import { getCustomerProfile, saveCustomerProfile } from "@/lib/customerProfile";
 import { loadGoogleMaps } from "@/lib/googleMaps";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type { DriverLocation } from "@/lib/types";
@@ -138,6 +139,13 @@ export default function BookingForm({
       const role = user?.user_metadata?.role;
       // fix: only logged-in customer sessions can confirm a real ride request.
       setCustomerLoggedIn(Boolean(user && role !== "driver" && role !== "admin"));
+
+      if (user && role !== "driver" && role !== "admin") {
+        // fix: booking details prefill from the saved customer profile in the database.
+        const profile = await getCustomerProfile(user);
+        setCustomerName((current) => current || profile?.full_name || "");
+        setCustomerPhone((current) => current || profile?.phone || "");
+      }
     }
 
     checkCustomerSession();
@@ -344,11 +352,17 @@ export default function BookingForm({
     }
 
     setMessage("Requesting ride...");
+    // fix: ride confirmation stores the latest customer details in the database profile.
+    const profile = userData.user
+      ? await saveCustomerProfile(userData.user, { full_name: customerName, phone: customerPhone })
+      : null;
+    const finalCustomerName = customerName || profile?.full_name || "HopToDrop rider";
+    const finalCustomerPhone = customerPhone || profile?.phone || "+355";
 
     const booking = {
       customer_id: null,
-      customer_name: customerName || "Guest rider",
-      customer_phone: customerPhone || "+355",
+      customer_name: finalCustomerName,
+      customer_phone: finalCustomerPhone,
       pickup: pickup.name,
       dropoff: dropoff.name,
       pickup_lat: pickup.lat,

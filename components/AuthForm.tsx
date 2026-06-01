@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { ensureCustomerProfile } from "@/lib/customerProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type AuthFormProps = {
@@ -64,6 +65,11 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
         await supabase.auth.updateUser({ data: { role } });
       }
 
+      if (role === "customer" && data.user) {
+        // fix: manual customer login creates or refreshes the database customer profile.
+        await ensureCustomerProfile(data.user);
+      }
+
       setMessage("Signed in successfully.");
       onAuthChange?.();
       router.replace(authRedirectFor(role, redirectPath));
@@ -77,7 +83,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
       return;
     }
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -88,6 +94,10 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
     });
     if (error) setMessage(authMessage(error.message));
     else {
+      if (role === "customer" && data.session && data.user) {
+        // fix: if email confirmation is disabled, create the customer profile immediately after signup.
+        await ensureCustomerProfile(data.user);
+      }
       setMessage("Confirmation link sent. Open the email link to verify this account, then log in.");
       setMode("login");
     }

@@ -7,12 +7,14 @@ import { LogOut, MapPinned, UserRound } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import CustomerBookings from "@/components/CustomerBookings";
 import TopNav from "@/components/TopNav";
+import { getCustomerProfile } from "@/lib/customerProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type DashboardUser = {
   avatarUrl: string;
   email: string;
   name: string;
+  phone: string;
 };
 
 export default function ClientDashboardPage() {
@@ -49,11 +51,13 @@ export default function ClientDashboardPage() {
         return;
       }
 
-      const metadata = sessionUser.user_metadata || {};
+      // fix: dashboard reads the real customer profile row stored in Supabase.
+      const profile = await getCustomerProfile(sessionUser);
       setUser({
-        avatarUrl: metadata.avatar_url || metadata.picture || "",
-        email: sessionUser.email || "",
-        name: metadata.full_name || metadata.name || sessionUser.email || "HopToDrop rider"
+        avatarUrl: profile?.avatar_url || "",
+        email: profile?.email || sessionUser.email || "",
+        name: profile?.full_name || sessionUser.email || "HopToDrop rider",
+        phone: profile?.phone || ""
       });
       setLoading(false);
     }
@@ -91,6 +95,7 @@ export default function ClientDashboardPage() {
               <div>
                 <strong>{user.name}</strong>
                 <span>{user.email}</span>
+                {user.phone && <span>{user.phone}</span>}
               </div>
             </div>
 

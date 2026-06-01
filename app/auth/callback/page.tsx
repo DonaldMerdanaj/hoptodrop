@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ensureCustomerProfile } from "@/lib/customerProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 function AuthCallbackContent() {
@@ -56,6 +57,23 @@ function AuthCallbackContent() {
             return;
           }
         }
+      }
+
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) {
+        setError(userError?.message || "Could not load the signed-in user.");
+        return;
+      }
+
+      const role = userData.user.user_metadata?.role;
+      if (next.startsWith("/client") && role !== "driver" && role !== "admin") {
+        if (!role) {
+          // fix: Google customer sign-in receives customer role metadata after OAuth callback.
+          await supabase.auth.updateUser({ data: { role: "customer" } });
+        }
+
+        // fix: Google/email callback creates the persistent customer profile before opening dashboard.
+        await ensureCustomerProfile(userData.user);
       }
 
       setMessage("Email confirmed. Redirecting...");

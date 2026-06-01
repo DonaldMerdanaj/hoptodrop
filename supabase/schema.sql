@@ -30,11 +30,24 @@ create table if not exists public.bookings (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.customer_profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text not null default '',
+  full_name text not null default '',
+  phone text not null default '',
+  avatar_url text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table public.bookings add column if not exists driver_id uuid references auth.users(id) on delete set null;
 alter table public.bookings add column if not exists accepted_at timestamptz;
 alter table public.bookings add column if not exists arrived_at timestamptz;
 alter table public.bookings add column if not exists started_at timestamptz;
 alter table public.bookings add column if not exists completed_at timestamptz;
+alter table public.customer_profiles add column if not exists phone text not null default '';
+alter table public.customer_profiles add column if not exists avatar_url text not null default '';
+alter table public.customer_profiles add column if not exists updated_at timestamptz not null default now();
 
 create table if not exists public.driver_locations (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -86,6 +99,7 @@ create table if not exists public.booking_route_points (
 );
 
 alter table public.bookings enable row level security;
+alter table public.customer_profiles enable row level security;
 alter table public.driver_locations enable row level security;
 alter table public.driver_profiles enable row level security;
 alter table public.booking_route_points enable row level security;
@@ -96,6 +110,10 @@ check (status in ('pending','accepted','assigned','arrived','started','completed
 
 drop policy if exists "Anyone can create bookings" on public.bookings;
 drop policy if exists "Anyone can read bookings" on public.bookings;
+drop policy if exists "Authenticated users can create bookings" on public.bookings;
+drop policy if exists "Customers can read own bookings" on public.bookings;
+drop policy if exists "Authenticated users can read all bookings (temp)" on public.bookings;
+drop policy if exists "Admins can update bookings" on public.bookings;
 
 -- fix: require authenticated customer-owned inserts and remove public booking reads.
 create policy "Authenticated users can create bookings"
@@ -120,6 +138,33 @@ to authenticated
 using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
 with check ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
+drop policy if exists "Customers can read own profile" on public.customer_profiles;
+drop policy if exists "Customers can create own profile" on public.customer_profiles;
+drop policy if exists "Customers can update own profile" on public.customer_profiles;
+drop policy if exists "Admins can read customer profiles" on public.customer_profiles;
+
+-- fix: customer login stores profile data in public.customer_profiles, protected per user.
+create policy "Customers can read own profile"
+on public.customer_profiles for select
+to authenticated
+using (auth.uid() = id);
+
+create policy "Customers can create own profile"
+on public.customer_profiles for insert
+to authenticated
+with check (auth.uid() = id);
+
+create policy "Customers can update own profile"
+on public.customer_profiles for update
+to authenticated
+using (auth.uid() = id)
+with check (auth.uid() = id);
+
+create policy "Admins can read customer profiles"
+on public.customer_profiles for select
+to authenticated
+using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
 drop policy if exists "Drivers can accept and progress own bookings" on public.bookings;
 
 create policy "Drivers can accept and progress own bookings"
@@ -141,6 +186,10 @@ on public.booking_route_points for insert
 to authenticated
 with check (auth.uid() = driver_id);
 
+drop policy if exists "Anyone can read online drivers" on public.driver_locations;
+drop policy if exists "Drivers can insert own location" on public.driver_locations;
+drop policy if exists "Drivers can update own location" on public.driver_locations;
+
 create policy "Anyone can read online drivers"
 on public.driver_locations for select
 to anon, authenticated
@@ -156,6 +205,11 @@ on public.driver_locations for update
 to authenticated
 using (auth.uid() = id)
 with check (auth.uid() = id);
+
+drop policy if exists "Drivers can read own profile" on public.driver_profiles;
+drop policy if exists "Drivers can create own profile" on public.driver_profiles;
+drop policy if exists "Drivers can update own profile before approval" on public.driver_profiles;
+drop policy if exists "Admins can approve driver profiles" on public.driver_profiles;
 
 create policy "Drivers can read own profile"
 on public.driver_profiles for select
