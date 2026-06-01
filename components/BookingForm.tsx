@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Car, CheckCircle2, Clock3, LocateFixed, MapPin, Navigation, Search, Star } from "lucide-react";
 import PlaceInput, { type PlaceSelection } from "@/components/PlaceInput";
 import { loadGoogleMaps } from "@/lib/googleMaps";
@@ -73,6 +74,7 @@ export default function BookingForm({
   initialDropoff: PlaceSelection | null;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const [step, setStep] = useState<Step>("where");
   const [pickup, setPickup] = useState<PlaceSelection>(places[0]);
   const [dropoff, setDropoff] = useState<PlaceSelection>(places[1]);
@@ -87,6 +89,7 @@ export default function BookingForm({
   const [message, setMessage] = useState("");
   const [locatingPickup, setLocatingPickup] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
+  const [customerLoggedIn, setCustomerLoggedIn] = useState(false);
   const dragStartY = useRef<number | null>(null);
 
   const tripKm = distanceKm(pickup.lat, pickup.lng, dropoff.lat, dropoff.lng);
@@ -124,6 +127,26 @@ export default function BookingForm({
       setMessage("");
       setBookingId(null);
     }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !isSupabaseConfigured || !supabase) return;
+
+    async function checkCustomerSession() {
+      const { data } = await supabase!.auth.getSession();
+      const user = data.session?.user;
+      const role = user?.user_metadata?.role;
+      // fix: only logged-in customer sessions can confirm a real ride request.
+      setCustomerLoggedIn(Boolean(user && role !== "driver" && role !== "admin"));
+    }
+
+    checkCustomerSession();
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      const role = session?.user?.user_metadata?.role;
+      setCustomerLoggedIn(Boolean(session?.user && role !== "driver" && role !== "admin"));
+    });
+
+    return () => data.subscription.unsubscribe();
   }, [open]);
 
   useEffect(() => {
@@ -307,6 +330,19 @@ export default function BookingForm({
       return;
     }
 
+    if (!isSupabaseConfigured || !supabase) {
+      setMessage("Supabase is required to confirm a real ride.");
+      return;
+    }
+
+    const { data: userData } = await supabase.auth.getUser();
+    const role = userData.user?.user_metadata?.role;
+    if (!userData.user || role === "driver" || role === "admin") {
+      setMessage("Log in as a customer to confirm this ride.");
+      router.push("/customer-login");
+      return;
+    }
+
     setMessage("Requesting ride...");
 
     const booking = {
@@ -332,26 +368,18 @@ export default function BookingForm({
       estimated_price: estimatedPrice
     };
 
-    if (isSupabaseConfigured && supabase) {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        setMessage("Please log in before booking a real ride.");
-        return;
-      }
+    const { data, error } = await supabase
+      .from("bookings")
+      .insert({ ...booking, customer_id: userData.user.id, status: "assigned" })
+      .select("id, status")
+      .single();
 
-      const { data, error } = await supabase
-        .from("bookings")
-        .insert({ ...booking, customer_id: userData.user.id, status: "assigned" })
-        .select("id, status")
-        .single();
-
-      if (error) {
-        setMessage(error.message);
-        return;
-      }
-
-      setBookingId(data?.id || null);
+    if (error) {
+      setMessage(error.message);
+      return;
     }
+
+    setBookingId(data?.id || null);
 
     setStep("assigned");
     setMessage(`Request sent to ${selectedDriver.driver_name}. Waiting for accept.`);
@@ -526,7 +554,7 @@ export default function BookingForm({
             </div>
             <button className="primary-btn request-btn" type="submit">
               <MapPin size={19} />
-              Confirm ride
+              {customerLoggedIn ? "Confirm ride" : "Log in to confirm ride"}
             </button>
             <button className="secondary-btn compact-step-back" type="button" onClick={() => setStep("driver")}>Back to taxis</button>
           </>
