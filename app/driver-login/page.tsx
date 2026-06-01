@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthForm from "@/components/AuthForm";
+import BottomNav from "@/components/BottomNav";
 import { setAccountMode } from "@/lib/accountMode";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -56,6 +57,7 @@ export default function DriverLoginPage() {
           </>
         )}
       </section>
+      <BottomNav />
     </main>
   );
 }

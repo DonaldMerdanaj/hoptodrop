@@ -49,7 +49,8 @@ button { cursor: pointer; }
 .launcher-search input { width: 100%; border: 0; outline: 0; padding: 0; color: var(--ink); background: transparent; font-size: 21px; font-weight: 900; }
 .launcher-search input::placeholder { color: var(--ink); opacity: 1; }
 .place-input { position: relative; }
-.place-suggestions { position: absolute; z-index: 1000; left: 0; right: 0; bottom: calc(100% + 8px); display: grid; gap: 2px; max-height: min(36vh, 245px); overflow: auto; padding: 6px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.98); box-shadow: 0 14px 38px rgba(17,24,39,.16); }
+.place-suggestions { position: absolute; z-index: 1000; left: 0; right: 0; top: calc(100% + 8px); display: grid; gap: 2px; max-height: min(36vh, 245px); overflow: auto; padding: 6px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.98); box-shadow: 0 14px 38px rgba(17,24,39,.16); }
+.launcher-search .place-suggestions, .ride-sheet.typing-mode .place-suggestions { top: auto; bottom: calc(100% + 8px); }
 .launcher-search .place-suggestions { left: -24px; right: -20px; }
 .place-suggestion { display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: center; gap: 8px; width: 100%; border: 0; border-radius: 12px; padding: 8px; color: var(--ink); background: transparent; text-align: left; }
 .place-suggestion:hover, .place-suggestion:focus { background: var(--surface-soft); }
@@ -169,7 +170,7 @@ button { cursor: pointer; }
 .auth-form-title { margin: 0; font-size: 18px; }
 .auth-toggle { border: 0; background: transparent; color: var(--ink); font-weight: 900; text-decoration: underline; }
 .auth-note { color: var(--muted); font-size: 12px; text-align: center; }
-.auth-entry-page { padding: 0 0 calc(26px + env(safe-area-inset-bottom)); background: #fff; }
+.auth-entry-page { padding: 0 0 calc(104px + env(safe-area-inset-bottom)); background: #fff; }
 .auth-brand-bar { height: calc(122px + env(safe-area-inset-top)); display: flex; align-items: end; padding: calc(18px + env(safe-area-inset-top)) 32px 32px; color: #fff; background: #000; font-size: 42px; font-weight: 700; letter-spacing: -.02em; }
 .auth-entry-card { padding: 38px 30px 0; background: #fff; }
 .auth-entry-form { display: grid; gap: 16px; min-width: 0; }
