@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import AuthForm from "@/components/AuthForm";
 import BottomNav from "@/components/BottomNav";
 import TopNav from "@/components/TopNav";
+import { setAccountMode } from "@/lib/accountMode";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export default function DriverLoginPage() {
@@ -23,6 +24,7 @@ export default function DriverLoginPage() {
       const { data } = await supabase.auth.getSession();
       if (data.session?.user) {
         // fix: the same Supabase account can open driver mode; driver approval is checked in driver_profiles.
+        setAccountMode("driver");
         setIsAuthenticated(true);
         router.replace("/driver/dashboard");
         return;
@@ -36,7 +38,10 @@ export default function DriverLoginPage() {
 
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(Boolean(session?.user));
-      if (session?.user) router.replace("/driver/dashboard");
+      if (session?.user) {
+        setAccountMode("driver");
+        router.replace("/driver/dashboard");
+      }
     });
 
     return () => data.subscription.unsubscribe();

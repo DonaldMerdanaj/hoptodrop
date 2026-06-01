@@ -7,6 +7,7 @@ import DriverLocationSender from "@/components/DriverLocationSender";
 import DriverRegistrationForm from "@/components/DriverRegistrationForm";
 import DriverRequests from "@/components/DriverRequests";
 import TopNav from "@/components/TopNav";
+import { clearAccountMode, setAccountMode } from "@/lib/accountMode";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type DriverUser = {
@@ -43,6 +44,8 @@ export default function DriverDashboardPage() {
         return;
       }
 
+      // fix: opening the driver dashboard marks this browser session as driver mode.
+      setAccountMode("driver");
       setUser({ email: data.session.user.email || "Driver account" });
 
       const { data: profileData } = await supabase
@@ -61,6 +64,7 @@ export default function DriverDashboardPage() {
   async function signOut() {
     if (!supabase) return;
     await supabase.auth.signOut();
+    clearAccountMode();
     router.replace("/driver-login");
   }
 

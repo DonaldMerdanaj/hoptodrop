@@ -7,6 +7,7 @@ import { LogOut, MapPinned, UserRound } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import CustomerBookings from "@/components/CustomerBookings";
 import TopNav from "@/components/TopNav";
+import { clearAccountMode, getAccountMode, setAccountMode } from "@/lib/accountMode";
 import { getCustomerProfile } from "@/lib/customerProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -45,6 +46,16 @@ export default function ClientDashboardPage() {
         return;
       }
 
+      if (getAccountMode() === "driver") {
+        // fix: driver-mode sessions must log out before using customer dashboard or booking.
+        await supabase.auth.signOut();
+        clearAccountMode();
+        router.replace("/customer-login");
+        return;
+      }
+
+      // fix: opening the rider dashboard sets customer mode for this browser session.
+      setAccountMode("customer");
       // fix: dashboard reads the real customer profile row stored in Supabase.
       const profile = await getCustomerProfile(sessionUser);
       setUser({
@@ -63,6 +74,7 @@ export default function ClientDashboardPage() {
     if (!supabase) return;
     setLoading(true);
     await supabase.auth.signOut();
+    clearAccountMode();
     router.replace("/customer-login");
   }
 

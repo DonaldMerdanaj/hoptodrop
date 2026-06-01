@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Car, CheckCircle2, Clock3, LocateFixed, MapPin, Navigation, Search, Star } from "lucide-react";
 import PlaceInput, { type PlaceSelection } from "@/components/PlaceInput";
+import { clearAccountMode, getAccountMode } from "@/lib/accountMode";
 import { getCustomerProfile, saveCustomerProfile } from "@/lib/customerProfile";
 import { loadGoogleMaps } from "@/lib/googleMaps";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
@@ -137,10 +138,11 @@ export default function BookingForm({
       const { data } = await supabase!.auth.getSession();
       const user = data.session?.user;
       const role = user?.user_metadata?.role;
-      // fix: customer mode is page-based, so one email can still book rides even if it also has driver access.
-      setCustomerLoggedIn(Boolean(user && role !== "admin"));
+      const accountMode = getAccountMode();
+      // fix: driver-mode sessions cannot book rides; the driver must log in again as a customer.
+      setCustomerLoggedIn(Boolean(user && role !== "admin" && accountMode !== "driver"));
 
-      if (user && role !== "admin") {
+      if (user && role !== "admin" && accountMode !== "driver") {
         // fix: booking details prefill from the saved customer profile in the database.
         const profile = await getCustomerProfile(user);
         setCustomerName((current) => current || profile?.full_name || "");
@@ -151,7 +153,7 @@ export default function BookingForm({
     checkCustomerSession();
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       const role = session?.user?.user_metadata?.role;
-      setCustomerLoggedIn(Boolean(session?.user && role !== "admin"));
+      setCustomerLoggedIn(Boolean(session?.user && role !== "admin" && getAccountMode() !== "driver"));
     });
 
     return () => data.subscription.unsubscribe();
@@ -349,6 +351,15 @@ export default function BookingForm({
 
     const { data: userData } = await supabase.auth.getUser();
     const role = userData.user?.user_metadata?.role;
+    if (getAccountMode() === "driver") {
+      await supabase.auth.signOut();
+      clearAccountMode();
+      setCustomerLoggedIn(false);
+      setMessage("Drivers must log out and sign in as a customer to book a ride.");
+      router.push("/customer-login");
+      return;
+    }
+
     if (!userData.user || role === "admin") {
       setMessage("Log in as a customer to confirm this ride.");
       router.push("/customer-login");

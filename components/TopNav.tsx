@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
+import { clearAccountMode } from "@/lib/accountMode";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type SessionRole = "customer" | "driver" | "admin" | null;
@@ -63,6 +64,7 @@ export default function TopNav() {
   async function logout() {
     if (!supabase) return;
     await supabase.auth.signOut();
+    clearAccountMode();
     setOpen(false);
     setRole(null);
     setEmail("");
@@ -93,7 +95,6 @@ export default function TopNav() {
             <>
               <span className="menu-account">{email}</span>
               <Link href="/driver/dashboard">Driver dashboard</Link>
-              <Link href="/">Booking map</Link>
               <button type="button" onClick={logout}>Log out</button>
             </>
           )}

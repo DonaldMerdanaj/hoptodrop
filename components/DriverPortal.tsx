@@ -5,6 +5,7 @@ import AuthForm from "@/components/AuthForm";
 import DriverLocationSender from "@/components/DriverLocationSender";
 import DriverRegistrationForm from "@/components/DriverRegistrationForm";
 import DriverRequests from "@/components/DriverRequests";
+import { clearAccountMode, setAccountMode } from "@/lib/accountMode";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type AuthUser = {
@@ -23,6 +24,7 @@ export default function DriverPortal() {
 
     // fix: read the persisted session first so unconfirmed or signed-out drivers do not trigger noisy auth errors.
     const { data } = await supabase.auth.getSession();
+    if (data.session?.user) setAccountMode("driver");
     setUser(data.session?.user ? { email: data.session.user.email || "" } : null);
     setLoading(false);
   }
@@ -41,6 +43,7 @@ export default function DriverPortal() {
   async function signOut() {
     if (!supabase) return;
     await supabase.auth.signOut();
+    clearAccountMode();
     setUser(null);
   }
 

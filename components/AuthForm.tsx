@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { setAccountMode } from "@/lib/accountMode";
 import { ensureCustomerProfile } from "@/lib/customerProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -28,7 +29,7 @@ function authRedirectFor(role: "customer" | "driver", redirectPath?: string) {
 }
 
 function confirmationRedirectUrl(role: "customer" | "driver", redirectPath?: string) {
-  return `${window.location.origin}/auth/callback?next=${encodeURIComponent(authRedirectFor(role, redirectPath))}`;
+  return `${window.location.origin}/auth/callback?next=${encodeURIComponent(authRedirectFor(role, redirectPath))}&mode=${role}`;
 }
 
 export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormProps) {
@@ -53,6 +54,8 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
         await ensureCustomerProfile(data.user);
       }
 
+      // fix: booking is blocked for driver-mode sessions until the user logs in as a customer.
+      setAccountMode(role);
       setMessage("Signed in successfully.");
       onAuthChange?.();
       router.replace(authRedirectFor(role, redirectPath));
@@ -81,6 +84,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
         // fix: if email confirmation is disabled, create the customer profile immediately after signup.
         await ensureCustomerProfile(data.user);
       }
+      if (data.session) setAccountMode(role);
       setMessage("Confirmation link sent. Open the email link to verify this account, then log in.");
       setMode("login");
     }
@@ -121,7 +125,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(authRedirectFor(role, redirectPath))}`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(authRedirectFor(role, redirectPath))}&mode=${role}`,
         queryParams: {
           access_type: "offline",
           prompt: "consent"

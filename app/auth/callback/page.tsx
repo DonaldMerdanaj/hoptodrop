@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { setAccountMode, type AccountMode } from "@/lib/accountMode";
 import { ensureCustomerProfile } from "@/lib/customerProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -21,6 +22,7 @@ function AuthCallbackContent() {
 
       const code = searchParams.get("code");
       const next = searchParams.get("next") || "/client/dashboard";
+      const callbackMode = searchParams.get("mode") === "driver" ? "driver" : "customer";
       const oauthError = searchParams.get("error_description") || searchParams.get("error");
 
       if (oauthError) {
@@ -66,6 +68,8 @@ function AuthCallbackContent() {
       }
 
       const role = userData.user.user_metadata?.role;
+      // fix: OAuth/email callback records whether the user entered customer or driver mode.
+      setAccountMode(callbackMode as AccountMode);
       if (next.startsWith("/client") && role !== "admin") {
         if (!role) {
           // fix: Google customer sign-in receives customer metadata without blocking the same email from driver mode.
