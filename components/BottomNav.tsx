@@ -14,7 +14,7 @@ const items = [
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const [hideForCustomer, setHideForCustomer] = useState(false);
+  const [hideForSignedInUser, setHideForSignedInUser] = useState(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
@@ -22,21 +22,19 @@ export default function BottomNav() {
     async function loadSession() {
       const { data } = await supabase!.auth.getSession();
       const user = data.session?.user;
-      const role = user?.user_metadata?.role;
-      setHideForCustomer(Boolean(user && role !== "driver" && role !== "admin"));
+      setHideForSignedInUser(Boolean(user));
     }
 
     loadSession();
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      const role = session?.user?.user_metadata?.role;
-      setHideForCustomer(Boolean(session?.user && role !== "driver" && role !== "admin"));
+      setHideForSignedInUser(Boolean(session?.user));
     });
 
     return () => data.subscription.unsubscribe();
   }, []);
 
-  if (hideForCustomer) {
-    // fix: logged-in customers use the hamburger account menu, so the bottom nav is hidden.
+  if (hideForSignedInUser) {
+    // fix: logged-in customers and drivers use the hamburger account menu, so the bottom nav is hidden.
     return <span className="customer-session-marker" aria-hidden="true" />;
   }
 

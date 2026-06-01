@@ -1,10 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { CheckCircle2, MapPinned, Navigation, Phone, XCircle } from "lucide-react";
 import type { Booking } from "@/lib/types";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 const emptyDriverId = "00000000-0000-0000-0000-000000000000";
+
+function mapsDirectionsUrl(booking: Booking, target: "pickup" | "dropoff") {
+  const lat = target === "pickup" ? booking.pickup_lat : booking.dropoff_lat;
+  const lng = target === "pickup" ? booking.pickup_lng : booking.dropoff_lng;
+  const destination = encodeURIComponent(`${lat},${lng}`);
+  return `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
+}
+
+function tripStageCopy(status: Booking["status"]) {
+  if (status === "pending" || status === "assigned") return "New request";
+  if (status === "accepted") return "Drive to pickup";
+  if (status === "started") return "Drive to destination";
+  return status;
+}
 
 export default function DriverRequests() {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -141,10 +156,11 @@ export default function DriverRequests() {
 
   async function declineRide(id: string) {
     if (!isSupabaseConfigured || !supabase) return;
+    const { data: userData } = await supabase.auth.getUser();
 
     const { error } = await supabase
       .from("bookings")
-      .update({ status: "cancelled" })
+      .update({ status: "cancelled", driver_id: userData.user?.id || null })
       .eq("id", id);
 
     if (error) setMessage(error.message);
@@ -176,16 +192,44 @@ export default function DriverRequests() {
     if (booking.status === "pending" || booking.status === "assigned") {
       return (
         <div className="driver-job-actions">
-          <button className="primary-btn compact-btn" onClick={() => acceptRide(booking.id)}>Accept</button>
-          <button className="secondary-btn compact-btn" onClick={() => declineRide(booking.id)}>Decline</button>
+          <button className="primary-btn compact-btn" onClick={() => acceptRide(booking.id)}>
+            <CheckCircle2 size={17} />
+            Accept
+          </button>
+          <button className="secondary-btn compact-btn" onClick={() => declineRide(booking.id)}>
+            <XCircle size={17} />
+            Decline
+          </button>
         </div>
       );
     }
     if (booking.status === "accepted") {
-      return <button className="secondary-btn compact-btn" onClick={() => updateRide(booking.id, "started")}>Picked up</button>;
+      return (
+        <div className="driver-job-actions stacked">
+          <a className="primary-btn compact-btn" href={mapsDirectionsUrl(booking, "pickup")} target="_blank" rel="noreferrer">
+            <Navigation size={17} />
+            Navigate to pickup
+          </a>
+          <button className="secondary-btn compact-btn" onClick={() => updateRide(booking.id, "started")}>
+            <CheckCircle2 size={17} />
+            Picked up
+          </button>
+        </div>
+      );
     }
     if (booking.status === "started") {
-      return <button className="primary-btn compact-btn" onClick={() => updateRide(booking.id, "completed")}>Job done</button>;
+      return (
+        <div className="driver-job-actions stacked">
+          <a className="primary-btn compact-btn" href={mapsDirectionsUrl(booking, "dropoff")} target="_blank" rel="noreferrer">
+            <Navigation size={17} />
+            Navigate to destination
+          </a>
+          <button className="secondary-btn compact-btn" onClick={() => updateRide(booking.id, "completed")}>
+            <CheckCircle2 size={17} />
+            Job done
+          </button>
+        </div>
+      );
     }
     return <span className={`status-pill ${booking.status}`}>{booking.status}</span>;
   }
@@ -194,11 +238,39 @@ export default function DriverRequests() {
     <div className="driver-jobs">
       <h2>Live ride requests</h2>
       {bookings.map((booking) => (
-        <article className="job-card" key={booking.id}>
-          <div>
-            <strong>{booking.pickup} to {booking.dropoff}</strong>
-            <p>{booking.ride_class} | EUR {Number(booking.estimated_price).toFixed(2)} | {booking.payment_method}</p>
-            <span className={`status-pill ${booking.status}`}>{booking.status}</span>
+        <article className={`job-card driver-trip-card ${booking.status}`} key={booking.id}>
+          <div className="driver-trip-main">
+            <div className="driver-trip-topline">
+              <span className={`status-pill ${booking.status}`}>{tripStageCopy(booking.status)}</span>
+              <strong>EUR {Number(booking.estimated_price).toFixed(2)}</strong>
+            </div>
+            <div className="driver-route-stack">
+              <div>
+                <MapPinned size={17} />
+                <span>
+                  <small>Pickup</small>
+                  <strong>{booking.pickup}</strong>
+                </span>
+              </div>
+              <div>
+                <Navigation size={17} />
+                <span>
+                  <small>Destination</small>
+                  <strong>{booking.dropoff}</strong>
+                </span>
+              </div>
+            </div>
+            <div className="driver-trip-meta">
+              <span>{booking.ride_class}</span>
+              <span>{booking.passengers} passenger{booking.passengers === 1 ? "" : "s"}</span>
+              <span>{booking.payment_method}</span>
+            </div>
+            {booking.customer_phone && (
+              <a className="driver-call-link" href={`tel:${booking.customer_phone}`}>
+                <Phone size={15} />
+                Call customer
+              </a>
+            )}
           </div>
           {actionsFor(booking)}
         </article>

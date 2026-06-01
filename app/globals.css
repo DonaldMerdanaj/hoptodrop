@@ -210,8 +210,22 @@ button { cursor: pointer; }
 .driver-dashboard-card .driver-jobs h2, .driver-dashboard-card .form-section h2 { font-size: 17px; }
 .driver-dashboard-card .job-card { grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .driver-dashboard-card .job-card strong, .driver-dashboard-card .job-card p { overflow: hidden; text-overflow: ellipsis; }
-.driver-dashboard-card .job-card .compact-btn { width: 100%; }
+.driver-dashboard-card .job-card .compact-btn { width: 100%; min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; text-decoration: none; }
 .driver-job-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.driver-job-actions.stacked { grid-template-columns: 1fr; }
+.driver-trip-card { align-items: stretch; border-radius: 22px; background: linear-gradient(180deg, #fff, #f9fafb); box-shadow: 0 12px 30px rgba(17,24,39,.06); }
+.driver-trip-main { display: grid; gap: 11px; min-width: 0; }
+.driver-trip-topline { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.driver-trip-topline > strong { font-size: 18px; white-space: nowrap; }
+.driver-route-stack { display: grid; gap: 8px; }
+.driver-route-stack > div { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 8px; align-items: start; }
+.driver-route-stack svg { margin-top: 2px; color: var(--ink); }
+.driver-route-stack span { display: grid; gap: 2px; min-width: 0; }
+.driver-route-stack small { color: var(--muted); font-size: 11px; font-weight: 900; text-transform: uppercase; }
+.driver-route-stack strong { font-size: 14px; line-height: 1.25; white-space: normal; }
+.driver-trip-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.driver-trip-meta span { border-radius: 999px; padding: 6px 8px; color: var(--muted); background: var(--surface-soft); font-size: 11px; font-weight: 900; }
+.driver-call-link { display: inline-flex; align-items: center; gap: 6px; justify-self: start; color: var(--ink); font-size: 13px; font-weight: 900; text-decoration: none; }
 .compact-history-card { opacity: .86; }
 .driver-online-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .driver-form-intro { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: start; gap: 9px; margin-bottom: 12px; }

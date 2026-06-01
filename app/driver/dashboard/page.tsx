@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CarFront, CheckCircle2, FileText, LogOut, MapPinned } from "lucide-react";
-import BottomNav from "@/components/BottomNav";
 import DriverLocationSender from "@/components/DriverLocationSender";
 import DriverRegistrationForm from "@/components/DriverRegistrationForm";
 import DriverRequests from "@/components/DriverRequests";
@@ -77,8 +76,8 @@ export default function DriverDashboardPage() {
       <section className="driver-dashboard-header">
         <div>
           <div className="eyebrow">Driver dashboard</div>
-          <h1>Go online</h1>
-          <p>Manage approval, GPS status, and live trips.</p>
+          <h1>Driver app</h1>
+          <p>Go online, accept trips, navigate, and complete rides.</p>
         </div>
         <button className="secondary-btn driver-logout-btn" type="button" onClick={signOut}>
           <LogOut size={17} />
@@ -139,7 +138,6 @@ export default function DriverDashboardPage() {
           )}
         </>
       )}
-      <BottomNav />
     </main>
   );
 }
