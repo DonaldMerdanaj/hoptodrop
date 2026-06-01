@@ -22,16 +22,9 @@ export default function DriverLoginPage() {
       // fix: authenticated drivers are sent to the real dashboard URL.
       const { data } = await supabase.auth.getSession();
       if (data.session?.user) {
-        const role = data.session.user.user_metadata?.role;
-        if (data.session.user.user_metadata?.role === "driver") {
-          setIsAuthenticated(true);
-          router.replace("/driver/dashboard");
-          return;
-        }
-
-        if (role === "customer" || !role) await supabase.auth.signOut();
-        setIsAuthenticated(false);
-        setLoading(false);
+        // fix: the same Supabase account can open driver mode; driver approval is checked in driver_profiles.
+        setIsAuthenticated(true);
+        router.replace("/driver/dashboard");
         return;
       }
 
@@ -42,9 +35,8 @@ export default function DriverLoginPage() {
     if (!isSupabaseConfigured || !supabase) return;
 
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      const isDriver = session?.user?.user_metadata?.role === "driver";
-      setIsAuthenticated(Boolean(isDriver));
-      if (isDriver) router.replace("/driver/dashboard");
+      setIsAuthenticated(Boolean(session?.user));
+      if (session?.user) router.replace("/driver/dashboard");
     });
 
     return () => data.subscription.unsubscribe();
@@ -63,8 +55,8 @@ export default function DriverLoginPage() {
             <p className="status-message">Please log in to go online.</p>
             <AuthForm role="driver" redirectPath="/driver/dashboard" />
             <div className="driver-login-note">
-              <strong>Driver account first</strong>
-              <span>Create an account and confirm the email link. After login, your driver dashboard will open.</span>
+              <strong>Use your account</strong>
+              <span>You can use the same email as rider and driver. Driver approval is handled inside the driver dashboard.</span>
             </div>
           </>
         )}

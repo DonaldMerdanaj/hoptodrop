@@ -1,21 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type SessionRole = "customer" | "driver" | "admin" | null;
 
-function sessionRole(user: any): SessionRole {
+function sessionRole(user: any, pathname: string): SessionRole {
   if (!user) return null;
   const role = user.user_metadata?.role;
-  return role === "driver" || role === "admin" ? role : "customer";
+  if (role === "admin") return "admin";
+  // fix: one account can act as driver or customer; the current app area decides the menu mode.
+  if (pathname.startsWith("/driver")) return "driver";
+  return "customer";
 }
 
 export default function TopNav() {
   const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState<SessionRole>(null);
   const [email, setEmail] = useState("");
@@ -37,19 +41,19 @@ export default function TopNav() {
     async function loadSession() {
       const { data } = await supabase!.auth.getSession();
       const user = data.session?.user;
-      setRole(sessionRole(user));
+      setRole(sessionRole(user, pathname));
       setEmail(user?.email || "");
     }
 
     loadSession();
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       const user = session?.user;
-      setRole(sessionRole(user));
+      setRole(sessionRole(user, pathname));
       setEmail(user?.email || "");
     });
 
     return () => data.subscription.unsubscribe();
-  }, []);
+  }, [pathname]);
 
   function goLiveMap() {
     setOpen(false);

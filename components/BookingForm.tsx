@@ -137,10 +137,10 @@ export default function BookingForm({
       const { data } = await supabase!.auth.getSession();
       const user = data.session?.user;
       const role = user?.user_metadata?.role;
-      // fix: only logged-in customer sessions can confirm a real ride request.
-      setCustomerLoggedIn(Boolean(user && role !== "driver" && role !== "admin"));
+      // fix: customer mode is page-based, so one email can still book rides even if it also has driver access.
+      setCustomerLoggedIn(Boolean(user && role !== "admin"));
 
-      if (user && role !== "driver" && role !== "admin") {
+      if (user && role !== "admin") {
         // fix: booking details prefill from the saved customer profile in the database.
         const profile = await getCustomerProfile(user);
         setCustomerName((current) => current || profile?.full_name || "");
@@ -151,7 +151,7 @@ export default function BookingForm({
     checkCustomerSession();
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       const role = session?.user?.user_metadata?.role;
-      setCustomerLoggedIn(Boolean(session?.user && role !== "driver" && role !== "admin"));
+      setCustomerLoggedIn(Boolean(session?.user && role !== "admin"));
     });
 
     return () => data.subscription.unsubscribe();
@@ -349,7 +349,7 @@ export default function BookingForm({
 
     const { data: userData } = await supabase.auth.getUser();
     const role = userData.user?.user_metadata?.role;
-    if (!userData.user || role === "driver" || role === "admin") {
+    if (!userData.user || role === "admin") {
       setMessage("Log in as a customer to confirm this ride.");
       router.push("/customer-login");
       return;

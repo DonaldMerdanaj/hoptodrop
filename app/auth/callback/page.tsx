@@ -66,9 +66,9 @@ function AuthCallbackContent() {
       }
 
       const role = userData.user.user_metadata?.role;
-      if (next.startsWith("/client") && role !== "driver" && role !== "admin") {
+      if (next.startsWith("/client") && role !== "admin") {
         if (!role) {
-          // fix: Google customer sign-in receives customer role metadata after OAuth callback.
+          // fix: Google customer sign-in receives customer metadata without blocking the same email from driver mode.
           await supabase.auth.updateUser({ data: { role: "customer" } });
         }
 

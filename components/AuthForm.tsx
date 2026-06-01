@@ -31,10 +31,6 @@ function confirmationRedirectUrl(role: "customer" | "driver", redirectPath?: str
   return `${window.location.origin}/auth/callback?next=${encodeURIComponent(authRedirectFor(role, redirectPath))}`;
 }
 
-function roleLabel(role: "customer" | "driver") {
-  return role === "driver" ? "driver" : "customer";
-}
-
 export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormProps) {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -52,21 +48,8 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) setMessage(authMessage(error.message));
     else {
-      const accountRole = data.user?.user_metadata?.role;
-      if (accountRole && accountRole !== role) {
-        // fix: keep customer and driver accounts separated even though Supabase has one browser session.
-        await supabase.auth.signOut();
-        setMessage(`This is a ${accountRole} account. Please use a ${roleLabel(role)} account here.`);
-        return;
-      }
-
-      if (!accountRole) {
-        // fix: older accounts without metadata get stamped with the role of the login form they used.
-        await supabase.auth.updateUser({ data: { role } });
-      }
-
       if (role === "customer" && data.user) {
-        // fix: manual customer login creates or refreshes the database customer profile.
+        // fix: one email can be used as customer or driver; customer mode stores a rider profile.
         await ensureCustomerProfile(data.user);
       }
 

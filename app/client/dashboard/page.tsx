@@ -45,12 +45,6 @@ export default function ClientDashboardPage() {
         return;
       }
 
-      if (sessionUser.user_metadata?.role === "driver") {
-        // fix: a driver session cannot open the customer dashboard.
-        router.replace("/driver/dashboard");
-        return;
-      }
-
       // fix: dashboard reads the real customer profile row stored in Supabase.
       const profile = await getCustomerProfile(sessionUser);
       setUser({
