@@ -68,14 +68,16 @@ export default function DriverDashboardPage() {
     router.replace("/driver-login");
   }
 
+  const isApproved = profile?.approval_status === "approved";
+
   return (
     <main className="auth-page driver-dashboard-page">
       <TopNav />
       <section className="driver-dashboard-header">
         <div>
-          <div className="eyebrow">Driver dashboard</div>
-          <h1>Driver app</h1>
-          <p>Go online, accept trips, navigate, and complete rides.</p>
+          <div className="eyebrow">{isApproved ? "Driver dashboard" : "Driver registration"}</div>
+          <h1>{isApproved ? "Driver app" : "Complete application"}</h1>
+          <p>{isApproved ? "Go online, accept trips, navigate, and complete rides." : "Submit your driver details. After admin approval, this page becomes your live driver dashboard."}</p>
         </div>
         <button className="secondary-btn driver-logout-btn" type="button" onClick={signOut}>
           <LogOut size={17} />
@@ -114,21 +116,23 @@ export default function DriverDashboardPage() {
             </div>
           </section>
 
-          <section className="auth-card driver-dashboard-card">
-            <DriverLocationSender />
-          </section>
+          {isApproved ? (
+            <>
+              <section className="auth-card driver-dashboard-card">
+                <DriverLocationSender />
+              </section>
 
-          <section className="auth-card driver-dashboard-card">
-            <DriverRequests />
-          </section>
-
-          {profile?.approval_status !== "approved" && (
+              <section className="auth-card driver-dashboard-card">
+                <DriverRequests />
+              </section>
+            </>
+          ) : (
             <section className="auth-card driver-dashboard-card">
               <div className="driver-form-intro">
                 <FileText size={19} />
                 <div>
                   <strong>{profile ? "Update driver application" : "Complete driver application"}</strong>
-                  <span>These details are only needed before dispatch approval.</span>
+                  <span>{profile?.approval_status === "submitted" ? "Your application is waiting for admin approval." : "Fill this in once. You can go online after approval."}</span>
                 </div>
               </div>
               <DriverRegistrationForm />

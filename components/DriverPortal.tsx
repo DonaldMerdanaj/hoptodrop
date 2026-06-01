@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from "react";
 import AuthForm from "@/components/AuthForm";
-import DriverLocationSender from "@/components/DriverLocationSender";
 import DriverRegistrationForm from "@/components/DriverRegistrationForm";
-import DriverRequests from "@/components/DriverRequests";
 import { clearAccountMode, setAccountMode } from "@/lib/accountMode";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -71,8 +69,6 @@ export default function DriverPortal() {
         <button className="secondary-btn compact-btn" onClick={signOut}>Sign out</button>
       </div>
       <DriverRegistrationForm />
-      <DriverLocationSender />
-      <DriverRequests />
     </>
   );
 }
