@@ -270,7 +270,7 @@ export default function BookingForm({
 
     if (availableDrivers.length === 0) {
       setSelectedDriver(null);
-      setMessage("No online taxis right now. Approved drivers must go online from the driver dashboard.");
+      setMessage("No taxis are available nearby right now. Please try again in a few minutes.");
       return;
     }
 
@@ -537,7 +537,7 @@ export default function BookingForm({
                   <Clock3 size={22} />
                   <div>
                     <strong>No online taxis</strong>
-                    <span>Approve the driver, then ask the driver to open /driver/dashboard and tap Go online with GPS.</span>
+                    <span>No taxis are available nearby right now. Please try again in a few minutes.</span>
                   </div>
                 </div>
               )}
