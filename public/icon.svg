@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="HopToDrop">
+  <rect width="512" height="512" rx="112" fill="#111827"/>
+  <path fill="#ffffff" d="M132 148h58v82h132v-82h58v216h-58v-86H190v86h-58V148Z"/>
+  <path fill="#22c55e" d="M256 102c-45 0-82 36-82 81 0 64 82 154 82 154s82-90 82-154c0-45-37-81-82-81Zm0 112a31 31 0 1 1 0-62 31 31 0 0 1 0 62Z" opacity=".96"/>
+</svg>
