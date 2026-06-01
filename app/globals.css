@@ -39,6 +39,7 @@ button { cursor: pointer; }
 .map-overlay { position: absolute; inset: 0; z-index: 2; pointer-events: none; background: linear-gradient(to bottom, rgba(248,250,252,.46) 0%, rgba(248,250,252,0) 22%, rgba(248,250,252,0) 68%, rgba(248,250,252,.78) 100%); }
 
 .ride-launcher { position: absolute; z-index: 18; left: 12px; right: 12px; bottom: calc(82px + env(safe-area-inset-bottom)); padding: 10px; border: 1px solid var(--line); border-radius: 24px; color: var(--ink); background: var(--surface); box-shadow: 0 18px 48px rgba(17,24,39,.16); }
+.ride-launcher.typing-mode { bottom: calc(44vh + env(safe-area-inset-bottom)); z-index: 60; }
 .where-to-pill { display: grid; grid-template-columns: 34px 1fr 30px; align-items: center; gap: 10px; min-height: 58px; width: 100%; padding: 0 16px; border: 1px solid var(--line-strong); border-radius: 18px; color: var(--ink); background: var(--surface); text-align: left; transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease; }
 .where-to-pill:hover { transform: translateY(-1px); border-color: #9ca3af; box-shadow: 0 12px 24px rgba(17,24,39,.08); }
 .where-to-pill svg { color: var(--ink); }
@@ -53,7 +54,10 @@ button { cursor: pointer; }
 
 .ride-sheet { position: absolute; z-index: 20; left: 12px; right: 12px; bottom: calc(82px + env(safe-area-inset-bottom)); max-height: min(64dvh, 520px); overflow: auto; padding: 10px; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); box-shadow: 0 22px 60px rgba(17,24,39,.18); }
 .ride-sheet.step-where { max-height: min(62dvh, 500px); }
-.ride-sheet.typing-mode { max-height: min(52dvh, 390px); }
+.ride-sheet.typing-mode { bottom: calc(44vh + env(safe-area-inset-bottom)); max-height: min(34vh, 300px); z-index: 60; }
+.pac-container { z-index: 10000 !important; border: 1px solid var(--line) !important; border-radius: 14px !important; box-shadow: 0 14px 32px rgba(17,24,39,.16) !important; overflow: hidden !important; font-family: Inter, Arial, sans-serif !important; }
+.pac-item { padding: 10px 12px !important; font-size: 14px !important; }
+.pac-item-query { font-size: 15px !important; color: var(--ink) !important; }
 .sheet-drag-handle { display: block; width: 42px; height: 16px; margin: -2px auto 5px; border: 0; border-radius: 999px; background: transparent; touch-action: none; cursor: grab; }
 .sheet-drag-handle:before { content: ""; display: block; width: 36px; height: 4px; margin: 6px auto; border-radius: 999px; background: #d1d5db; }
 .ride-sheet.minimized { max-height: none; overflow: visible; padding: 9px; border-radius: 24px; }

@@ -8,9 +8,16 @@ const emptyDestination: PlaceSelection = { name: "", lat: 41.3275, lng: 19.8187 
 
 export default function RideLauncher({ onDestinationSelected }: { onDestinationSelected: (destination: PlaceSelection) => void }) {
   const [destination, setDestination] = useState<PlaceSelection>(emptyDestination);
+  const [typingMode, setTypingMode] = useState(false);
 
   return (
-    <section className="ride-launcher simple-launcher">
+    <section
+      className={typingMode ? "ride-launcher simple-launcher typing-mode" : "ride-launcher simple-launcher"}
+      onFocusCapture={() => setTypingMode(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setTypingMode(false);
+      }}
+    >
       <div className="where-to-pill launcher-search">
         <Search size={22} />
         <PlaceInput
