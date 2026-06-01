@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { setAccountMode } from "@/lib/accountMode";
+import { clearAccountMode, getAccountMode, setAccountMode } from "@/lib/accountMode";
 import { ensureCustomerProfile } from "@/lib/customerProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -40,6 +40,18 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
 
+  async function preparePortalSession() {
+    if (!supabase) return;
+
+    const { data } = await supabase.auth.getSession();
+    const currentMode = getAccountMode();
+    if (data.session?.user && currentMode && currentMode !== role) {
+      // fix: switching between customer and driver portals starts from a clean Supabase session.
+      await supabase.auth.signOut();
+      clearAccountMode();
+    }
+  }
+
   async function signIn() {
     setMessage("Signing in...");
     if (!isSupabaseConfigured || !supabase) {
@@ -47,6 +59,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
       return;
     }
 
+    await preparePortalSession();
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) setMessage(authMessage(error.message));
     else {
@@ -70,6 +83,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
       return;
     }
 
+    await preparePortalSession();
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -133,6 +147,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
       return;
     }
 
+    await preparePortalSession();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
