@@ -96,12 +96,12 @@ export default function DriverLocationSender() {
           updated_at: new Date().toISOString()
         });
 
-        // fix: store the driver's live route trail for the active assigned/accepted/started ride.
+        // fix: store the driver's live route trail for the active assigned/accepted/arrived/started ride.
         const { data: activeBooking } = await client
           .from("bookings")
           .select("id, status")
           .eq("driver_id", user.id)
-          .in("status", ["assigned", "accepted", "started"])
+          .in("status", ["assigned", "accepted", "arrived", "started"])
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();

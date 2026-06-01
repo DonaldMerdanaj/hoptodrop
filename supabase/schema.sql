@@ -94,7 +94,7 @@ create table if not exists public.booking_route_points (
   driver_id uuid not null references auth.users(id) on delete cascade,
   lat double precision not null,
   lng double precision not null,
-  phase text not null default 'accepted' check (phase in ('assigned','accepted','started','completed')),
+  phase text not null default 'accepted' check (phase in ('assigned','accepted','arrived','started','completed')),
   recorded_at timestamptz not null default now()
 );
 
@@ -107,6 +107,10 @@ alter table public.booking_route_points enable row level security;
 alter table public.bookings drop constraint if exists bookings_status_check;
 alter table public.bookings add constraint bookings_status_check
 check (status in ('pending','accepted','assigned','arrived','started','completed','cancelled'));
+
+alter table public.booking_route_points drop constraint if exists booking_route_points_phase_check;
+alter table public.booking_route_points add constraint booking_route_points_phase_check
+check (phase in ('assigned','accepted','arrived','started','completed'));
 
 drop policy if exists "Anyone can create bookings" on public.bookings;
 drop policy if exists "Anyone can read bookings" on public.bookings;

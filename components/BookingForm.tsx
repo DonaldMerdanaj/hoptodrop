@@ -14,7 +14,7 @@ const places = [
   { name: "", lat: 41.3194, lng: 19.8157 }
 ];
 
-type Step = "where" | "driver" | "details" | "assigned" | "started" | "completed";
+type Step = "where" | "driver" | "details" | "assigned" | "arrived" | "started" | "completed";
 type AvailableDriver = DriverLocation & {
   eta: number;
   rideClass: string;
@@ -205,6 +205,10 @@ export default function BookingForm({
       if (booking.status === "accepted") {
         setStep("assigned");
         setMessage(`${booking.driver_name || "Your driver"} accepted and is driving to pickup.`);
+      }
+      if (booking.status === "arrived") {
+        setStep("arrived");
+        setMessage(`${booking.driver_name || "Your driver"} has arrived at pickup.`);
       }
       if (booking.status === "started") {
         setStep("started");
@@ -419,6 +423,7 @@ export default function BookingForm({
     driver: "Choose taxi",
     details: "Request ride",
     assigned: "Driver assigned",
+    arrived: "Driver arrived",
     started: "Ride in progress",
     completed: "Ride completed"
   }[step];
@@ -580,7 +585,19 @@ export default function BookingForm({
               <Navigation size={22} />
               <div>
                 <strong>{selectedDriver ? `${selectedDriver.driver_name} assigned` : "Driver assigned"}</strong>
-                <span>Waiting for the driver to accept. When accepted, the map follows the taxi to pickup.</span>
+                <span>Your driver is on the way to the pickup point.</span>
+              </div>
+            </div>
+          </>
+        )}
+
+        {step === "arrived" && (
+          <>
+            <div className="trip-status-card">
+              <MapPin size={22} />
+              <div>
+                <strong>Your driver has arrived</strong>
+                <span>Meet the driver at the pickup point. The trip starts after pickup.</span>
               </div>
             </div>
           </>

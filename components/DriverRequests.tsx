@@ -17,6 +17,7 @@ function mapsDirectionsUrl(booking: Booking, target: "pickup" | "dropoff") {
 function tripStageCopy(status: Booking["status"]) {
   if (status === "pending" || status === "assigned") return "New request";
   if (status === "accepted") return "Drive to pickup";
+  if (status === "arrived") return "Arrived at pickup";
   if (status === "started") return "Drive to destination";
   return status;
 }
@@ -41,7 +42,7 @@ export default function DriverRequests() {
       .from("bookings")
       .select("*")
       .or(`status.eq.pending,driver_id.eq.${currentDriverId}`)
-      .in("status", ["pending", "assigned", "accepted", "started"])
+      .in("status", ["pending", "assigned", "accepted", "arrived", "started"])
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -170,10 +171,10 @@ export default function DriverRequests() {
     }
   }
 
-  async function updateRide(id: string, status: "started" | "completed") {
+  async function updateRide(id: string, status: "arrived" | "started" | "completed") {
     if (!isSupabaseConfigured || !supabase) return;
 
-    const timestampColumn = status === "started" ? "started_at" : "completed_at";
+    const timestampColumn = status === "arrived" ? "arrived_at" : status === "started" ? "started_at" : "completed_at";
     const { error } = await supabase
       .from("bookings")
       .update({ status, [timestampColumn]: new Date().toISOString() })
@@ -181,7 +182,7 @@ export default function DriverRequests() {
 
     if (error) setMessage(error.message);
     else {
-      setMessage(status === "completed" ? "Job done." : "Client picked up.");
+      setMessage(status === "arrived" ? "Arrived at pickup." : status === "completed" ? "Job done." : "Client picked up.");
       setBookings((current) => current
         .map((booking) => (booking.id === id ? { ...booking, status, [timestampColumn]: new Date().toISOString() } : booking))
         .filter((booking) => booking.status !== "completed"));
@@ -210,7 +211,21 @@ export default function DriverRequests() {
             <Navigation size={17} />
             Navigate to pickup
           </a>
-          <button className="secondary-btn compact-btn" onClick={() => updateRide(booking.id, "started")}>
+          <button className="secondary-btn compact-btn" onClick={() => updateRide(booking.id, "arrived")}>
+            <CheckCircle2 size={17} />
+            Arrived
+          </button>
+        </div>
+      );
+    }
+    if (booking.status === "arrived") {
+      return (
+        <div className="driver-job-actions stacked">
+          <a className="secondary-btn compact-btn" href={mapsDirectionsUrl(booking, "pickup")} target="_blank" rel="noreferrer">
+            <Navigation size={17} />
+            Pickup location
+          </a>
+          <button className="primary-btn compact-btn" onClick={() => updateRide(booking.id, "started")}>
             <CheckCircle2 size={17} />
             Picked up
           </button>

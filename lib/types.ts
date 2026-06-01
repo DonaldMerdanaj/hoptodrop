@@ -64,7 +64,7 @@ export type BookingRoutePoint = {
   driver_id: string;
   lat: number;
   lng: number;
-  phase: "assigned" | "accepted" | "started" | "completed";
+  phase: "assigned" | "accepted" | "arrived" | "started" | "completed";
   recorded_at: string;
 };
 
