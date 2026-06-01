@@ -59,6 +59,11 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
         return;
       }
 
+      if (!accountRole) {
+        // fix: older accounts without metadata get stamped with the role of the login form they used.
+        await supabase.auth.updateUser({ data: { role } });
+      }
+
       setMessage("Signed in successfully.");
       onAuthChange?.();
       router.replace(authRedirectFor(role, redirectPath));

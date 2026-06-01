@@ -8,6 +8,12 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type SessionRole = "customer" | "driver" | "admin" | null;
 
+function sessionRole(user: any): SessionRole {
+  if (!user) return null;
+  const role = user.user_metadata?.role;
+  return role === "driver" || role === "admin" ? role : "customer";
+}
+
 export default function TopNav() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -31,14 +37,14 @@ export default function TopNav() {
     async function loadSession() {
       const { data } = await supabase!.auth.getSession();
       const user = data.session?.user;
-      setRole((user?.user_metadata?.role as SessionRole) || null);
+      setRole(sessionRole(user));
       setEmail(user?.email || "");
     }
 
     loadSession();
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       const user = session?.user;
-      setRole((user?.user_metadata?.role as SessionRole) || null);
+      setRole(sessionRole(user));
       setEmail(user?.email || "");
     });
 

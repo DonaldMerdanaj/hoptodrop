@@ -22,13 +22,14 @@ export default function DriverLoginPage() {
       // fix: authenticated drivers are sent to the real dashboard URL.
       const { data } = await supabase.auth.getSession();
       if (data.session?.user) {
+        const role = data.session.user.user_metadata?.role;
         if (data.session.user.user_metadata?.role === "driver") {
           setIsAuthenticated(true);
           router.replace("/driver/dashboard");
           return;
         }
 
-        await supabase.auth.signOut();
+        if (role === "customer" || !role) await supabase.auth.signOut();
         setIsAuthenticated(false);
         setLoading(false);
         return;

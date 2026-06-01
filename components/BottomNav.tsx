@@ -21,12 +21,15 @@ export default function BottomNav() {
 
     async function loadSession() {
       const { data } = await supabase!.auth.getSession();
-      setHideForCustomer(data.session?.user?.user_metadata?.role === "customer");
+      const user = data.session?.user;
+      const role = user?.user_metadata?.role;
+      setHideForCustomer(Boolean(user && role !== "driver" && role !== "admin"));
     }
 
     loadSession();
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      setHideForCustomer(session?.user?.user_metadata?.role === "customer");
+      const role = session?.user?.user_metadata?.role;
+      setHideForCustomer(Boolean(session?.user && role !== "driver" && role !== "admin"));
     });
 
     return () => data.subscription.unsubscribe();
