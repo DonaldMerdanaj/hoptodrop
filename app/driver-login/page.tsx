@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthForm from "@/components/AuthForm";
 import BottomNav from "@/components/BottomNav";
-import { setAccountMode } from "@/lib/accountMode";
+import { getAccountMode } from "@/lib/accountMode";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export default function DriverLoginPage() {
@@ -21,9 +21,8 @@ export default function DriverLoginPage() {
 
       // fix: authenticated drivers are sent to the real dashboard URL.
       const { data } = await supabase.auth.getSession();
-      if (data.session?.user) {
-        // fix: the same Supabase account can open driver mode; driver approval is checked in driver_profiles.
-        setAccountMode("driver");
+      if (data.session?.user && getAccountMode() === "driver") {
+        // fix: only sessions that actually entered through driver auth can open the driver dashboard.
         setIsAuthenticated(true);
         router.replace("/driver/dashboard");
         return;
@@ -36,9 +35,9 @@ export default function DriverLoginPage() {
     if (!isSupabaseConfigured || !supabase) return;
 
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(Boolean(session?.user));
-      if (session?.user) {
-        setAccountMode("driver");
+      const isDriverMode = getAccountMode() === "driver";
+      setIsAuthenticated(Boolean(session?.user && isDriverMode));
+      if (session?.user && isDriverMode) {
         router.replace("/driver/dashboard");
       }
     });
