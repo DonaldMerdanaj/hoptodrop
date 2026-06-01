@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthForm from "@/components/AuthForm";
-import BottomNav from "@/components/BottomNav";
-import TopNav from "@/components/TopNav";
 import { setAccountMode } from "@/lib/accountMode";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -48,25 +46,16 @@ export default function DriverLoginPage() {
   }, [router]);
 
   return (
-    <main className="auth-page">
-      <TopNav />
-      <section className="auth-card">
-        <div className="eyebrow">Driver app</div>
-        <h1>Go online and accept trips</h1>
-        <p>Register as a real driver, wait for approval, then share live location and accept ride requests.</p>
+    <main className="auth-page auth-entry-page">
+      <header className="auth-brand-bar">HopToDrop</header>
+      <section className="auth-entry-card">
         {loading && <p className="status-message">Checking driver account...</p>}
         {!loading && !isAuthenticated && (
           <>
-            <p className="status-message">Please log in to go online.</p>
             <AuthForm role="driver" redirectPath="/driver/dashboard" />
-            <div className="driver-login-note">
-              <strong>Use your account</strong>
-              <span>You can use the same email as rider and driver. Driver approval is handled inside the driver dashboard.</span>
-            </div>
           </>
         )}
       </section>
-      <BottomNav />
     </main>
   );
 }

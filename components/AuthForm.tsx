@@ -35,6 +35,7 @@ function confirmationRedirectUrl(role: "customer" | "driver", redirectPath?: str
 export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormProps) {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">("login");
+  const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -138,29 +139,58 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
 
   async function submitAuth(e: React.FormEvent) {
     e.preventDefault();
+    if (!showPassword) {
+      setShowPassword(true);
+      return;
+    }
+
     // fix: route a single submit button through the selected login/signup mode.
     if (mode === "login") await signIn();
     else await signUp();
   }
 
   return (
-    <form onSubmit={submitAuth}>
-      <h2 className="auth-form-title">{mode === "login" ? "Login" : "Create Account"}</h2>
-      <input type="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} required />
-      <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-      <button className="primary-btn" type="submit">{mode === "login" ? "Login" : "Create Account"}</button>
-      <button className="secondary-btn" type="button" onClick={signInWithGoogle}>Continue with Google</button>
+    <form className="auth-entry-form" onSubmit={submitAuth}>
+      <h1>What's your email?</h1>
+      <input
+        type="email"
+        placeholder="Enter your email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+      />
+      {showPassword && (
+        <input
+          type="password"
+          placeholder={mode === "login" ? "Enter your password" : "Create a password"}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          autoFocus
+        />
+      )}
+      <button className="primary-btn auth-main-btn" type="submit">
+        {!showPassword ? "Continue" : mode === "login" ? "Login" : "Create Account"}
+      </button>
+      <div className="auth-divider"><span />or<span /></div>
+      <button className="secondary-btn auth-google-btn" type="button" onClick={signInWithGoogle}>
+        <span className="google-mark">G</span>
+        Continue with Google
+      </button>
       <button
         className="auth-toggle"
         type="button"
-        onClick={() => setMode((current) => (current === "login" ? "signup" : "login"))}
+        onClick={() => {
+          setMode((current) => (current === "login" ? "signup" : "login"));
+          setShowPassword(true);
+        }}
       >
         {mode === "login" ? "Don't have an account? Sign up" : "Already have an account? Log in"}
       </button>
       <button className="auth-toggle" type="button" onClick={resendConfirmation}>
         Resend confirmation email
       </button>
-      <small className="auth-note">Your email is your username.</small>
+      <small className="auth-note">By continuing, you agree to use your email for secure HopToDrop account access.</small>
       {message && <p className="status-message">{message}</p>}
     </form>
   );
