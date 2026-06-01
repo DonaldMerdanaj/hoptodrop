@@ -86,7 +86,17 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
         await ensureCustomerProfile(data.user);
       }
       if (data.session) setAccountMode(role);
-      setMessage("Confirmation link sent. Open the email link to verify this account, then log in.");
+      if (!data.session) {
+        // fix: after signup, explicitly request the confirmation email so unconfirmed existing accounts can receive a fresh link.
+        await supabase.auth.resend({
+          type: "signup",
+          email,
+          options: {
+            emailRedirectTo: confirmationRedirectUrl(role, redirectPath)
+          }
+        });
+      }
+      setMessage("Confirmation link sent. Check inbox and spam/junk, then open the email link.");
       setMode("login");
     }
   }
