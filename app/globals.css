@@ -49,15 +49,15 @@ button { cursor: pointer; }
 .launcher-search input { width: 100%; border: 0; outline: 0; padding: 0; color: var(--ink); background: transparent; font-size: 21px; font-weight: 900; }
 .launcher-search input::placeholder { color: var(--ink); opacity: 1; }
 .place-input { position: relative; }
-.place-suggestions { position: absolute; z-index: 1000; left: 0; right: 0; bottom: calc(100% + 10px); display: grid; gap: 4px; max-height: min(48vh, 310px); overflow: auto; padding: 8px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.98); box-shadow: 0 18px 50px rgba(17,24,39,.18); }
-.launcher-search .place-suggestions { left: -44px; right: -40px; }
-.place-suggestion { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: 10px; width: 100%; border: 0; border-radius: 13px; padding: 10px; color: var(--ink); background: transparent; text-align: left; }
+.place-suggestions { position: absolute; z-index: 1000; left: 0; right: 0; bottom: calc(100% + 8px); display: grid; gap: 2px; max-height: min(36vh, 245px); overflow: auto; padding: 6px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.98); box-shadow: 0 14px 38px rgba(17,24,39,.16); }
+.launcher-search .place-suggestions { left: -24px; right: -20px; }
+.place-suggestion { display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: center; gap: 8px; width: 100%; border: 0; border-radius: 12px; padding: 8px; color: var(--ink); background: transparent; text-align: left; }
 .place-suggestion:hover, .place-suggestion:focus { background: var(--surface-soft); }
 .place-suggestion svg { color: var(--muted); }
 .place-suggestion span { display: grid; gap: 2px; min-width: 0; }
 .place-suggestion strong, .place-suggestion small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.place-suggestion strong { font-size: 14px; }
-.place-suggestion small, .place-suggestion.muted { color: var(--muted); font-size: 12px; font-weight: 800; }
+.place-suggestion strong { font-size: 13px; }
+.place-suggestion small, .place-suggestion.muted { color: var(--muted); font-size: 11px; font-weight: 800; }
 .places-service-node { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
 .service-blocker { position: absolute; z-index: 22; left: 12px; right: 12px; bottom: calc(82px + env(safe-area-inset-bottom)); display: grid; gap: 5px; padding: 18px; border: 1px solid var(--line); border-radius: 24px; color: var(--ink); background: rgba(255,255,255,.98); box-shadow: 0 18px 48px rgba(17,24,39,.16); }
 .service-blocker strong { font-size: 18px; }
