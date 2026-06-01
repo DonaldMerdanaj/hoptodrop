@@ -30,6 +30,10 @@ function confirmationRedirectUrl(role: "customer" | "driver", redirectPath?: str
   return `${window.location.origin}/auth/callback?next=${encodeURIComponent(authRedirectFor(role, redirectPath))}`;
 }
 
+function roleLabel(role: "customer" | "driver") {
+  return role === "driver" ? "driver" : "customer";
+}
+
 export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormProps) {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -44,9 +48,17 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
       return;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) setMessage(authMessage(error.message));
     else {
+      const accountRole = data.user?.user_metadata?.role;
+      if (accountRole && accountRole !== role) {
+        // fix: keep customer and driver accounts separated even though Supabase has one browser session.
+        await supabase.auth.signOut();
+        setMessage(`This is a ${accountRole} account. Please use a ${roleLabel(role)} account here.`);
+        return;
+      }
+
       setMessage("Signed in successfully.");
       onAuthChange?.();
       router.replace(authRedirectFor(role, redirectPath));

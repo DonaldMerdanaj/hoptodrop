@@ -22,8 +22,15 @@ export default function DriverLoginPage() {
       // fix: authenticated drivers are sent to the real dashboard URL.
       const { data } = await supabase.auth.getSession();
       if (data.session?.user) {
-        setIsAuthenticated(true);
-        router.replace("/driver/dashboard");
+        if (data.session.user.user_metadata?.role === "driver") {
+          setIsAuthenticated(true);
+          router.replace("/driver/dashboard");
+          return;
+        }
+
+        await supabase.auth.signOut();
+        setIsAuthenticated(false);
+        setLoading(false);
         return;
       }
 
@@ -34,8 +41,9 @@ export default function DriverLoginPage() {
     if (!isSupabaseConfigured || !supabase) return;
 
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(Boolean(session?.user));
-      if (session?.user) router.replace("/driver/dashboard");
+      const isDriver = session?.user?.user_metadata?.role === "driver";
+      setIsAuthenticated(Boolean(isDriver));
+      if (isDriver) router.replace("/driver/dashboard");
     });
 
     return () => data.subscription.unsubscribe();

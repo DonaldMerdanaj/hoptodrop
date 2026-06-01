@@ -42,6 +42,12 @@ export default function ClientDashboardPage() {
         return;
       }
 
+      if (sessionUser.user_metadata?.role === "driver") {
+        // fix: a driver session cannot open the customer dashboard.
+        router.replace("/driver/dashboard");
+        return;
+      }
+
       const metadata = sessionUser.user_metadata || {};
       setUser({
         avatarUrl: metadata.avatar_url || metadata.picture || "",

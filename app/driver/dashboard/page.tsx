@@ -44,6 +44,12 @@ export default function DriverDashboardPage() {
         return;
       }
 
+      if (data.session.user.user_metadata?.role !== "driver") {
+        // fix: a customer session cannot open the driver dashboard.
+        router.replace("/client/dashboard");
+        return;
+      }
+
       setUser({ email: data.session.user.email || "Driver account" });
 
       const { data: profileData } = await supabase
