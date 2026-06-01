@@ -1,6 +1,5 @@
 import AuthForm from "@/components/AuthForm";
 import BottomNav from "@/components/BottomNav";
-import CustomerBookings from "@/components/CustomerBookings";
 import TopNav from "@/components/TopNav";
 
 export default function CustomerLoginPage() {
@@ -14,7 +13,6 @@ export default function CustomerLoginPage() {
           <p>Track assigned drivers, fare estimates, payment method, and ride status.</p>
         </div>
         <AuthForm role="customer" redirectPath="/client/dashboard" />
-        <CustomerBookings />
       </section>
       <BottomNav />
     </main>

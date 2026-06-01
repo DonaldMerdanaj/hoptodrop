@@ -168,6 +168,9 @@ button { cursor: pointer; }
 .profile-panel span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 13px; }
 .dashboard-actions { display: grid; gap: 10px; }
 .dashboard-actions .secondary-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
+.ride-history-list { margin-top: 4px; }
+.ride-history-list .list-item { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; background: var(--surface-soft); }
+.ride-history-list .list-item strong, .ride-history-list .list-item p { overflow: hidden; text-overflow: ellipsis; }
 .driver-controls, .driver-registration { margin-top: 18px; }
 .driver-dashboard-page { display: grid; align-content: start; gap: 12px; padding-left: 10px; padding-right: 10px; }
 .driver-dashboard-header { display: grid; grid-template-columns: minmax(0, 1fr) 46px; align-items: start; gap: 12px; padding: 4px 4px 2px; }

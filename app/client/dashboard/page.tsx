@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOut, MapPinned, UserRound } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import CustomerBookings from "@/components/CustomerBookings";
 import TopNav from "@/components/TopNav";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -72,7 +73,7 @@ export default function ClientDashboardPage() {
       <TopNav />
       <section className="auth-card dashboard-card">
         <div className="eyebrow">Rider dashboard</div>
-        <h1>Your account</h1>
+        <h1>Your rides</h1>
 
         {loading && <p className="status-message">Loading your profile...</p>}
         {error && <p className="status-message">{error}</p>}
@@ -103,6 +104,8 @@ export default function ClientDashboardPage() {
                 Log out
               </button>
             </div>
+
+            <CustomerBookings />
           </>
         )}
       </section>
