@@ -66,9 +66,6 @@ button { cursor: pointer; }
 .ride-sheet { position: absolute; z-index: 20; left: 12px; right: 12px; bottom: calc(82px + env(safe-area-inset-bottom)); max-height: min(64dvh, 520px); overflow: auto; padding: 10px; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); box-shadow: 0 22px 60px rgba(17,24,39,.18); }
 .ride-sheet.step-where { max-height: min(62dvh, 500px); }
 .ride-sheet.typing-mode { bottom: calc(44vh + env(safe-area-inset-bottom)); max-height: min(34vh, 300px); z-index: 60; }
-.pac-container { z-index: 10000 !important; border: 1px solid var(--line) !important; border-radius: 14px !important; box-shadow: 0 14px 32px rgba(17,24,39,.16) !important; overflow: hidden !important; font-family: Inter, Arial, sans-serif !important; }
-.pac-item { padding: 10px 12px !important; font-size: 14px !important; }
-.pac-item-query { font-size: 15px !important; color: var(--ink) !important; }
 .sheet-drag-handle { display: block; width: 42px; height: 16px; margin: -2px auto 5px; border: 0; border-radius: 999px; background: transparent; touch-action: none; cursor: grab; }
 .sheet-drag-handle:before { content: ""; display: block; width: 36px; height: 4px; margin: 6px auto; border-radius: 999px; background: #d1d5db; }
 .ride-sheet.minimized { max-height: none; overflow: visible; padding: 9px; border-radius: 24px; }
@@ -175,7 +172,7 @@ button { cursor: pointer; }
 .auth-entry-page { padding: 0 0 calc(26px + env(safe-area-inset-bottom)); background: #fff; }
 .auth-brand-bar { height: calc(122px + env(safe-area-inset-top)); display: flex; align-items: end; padding: calc(18px + env(safe-area-inset-top)) 32px 32px; color: #fff; background: #000; font-size: 42px; font-weight: 700; letter-spacing: -.02em; }
 .auth-entry-card { padding: 38px 30px 0; background: #fff; }
-.auth-entry-form { display: grid; gap: 16px; }
+.auth-entry-form { display: grid; gap: 16px; min-width: 0; }
 .auth-entry-form h1 { margin: 0 0 10px; color: #000; font-size: 34px; line-height: 1.12; letter-spacing: -.01em; font-weight: 500; }
 .auth-entry-form input { width: 100%; min-height: 58px; border: 0; outline: 0; border-radius: 10px; padding: 0 20px; color: #000; background: #f3f3f3; font-size: 21px; font-weight: 500; }
 .auth-entry-form input::placeholder { color: #6b7280; opacity: 1; }
@@ -294,4 +291,9 @@ button { cursor: pointer; }
   .quick-grid { grid-template-columns: 1fr; }
   .ride-option { grid-template-columns: 30px 1fr; }
   .ride-option b { grid-column: 2; }
+  .auth-brand-bar { padding-left: 24px; padding-right: 24px; font-size: 38px; }
+  .auth-entry-card { padding-left: 22px; padding-right: 22px; }
+  .auth-entry-form h1 { font-size: 30px; }
+  .auth-entry-form input, .auth-entry-form .auth-main-btn, .auth-google-btn { min-height: 54px; font-size: 18px; }
+  .auth-google-btn { gap: 10px; }
 }
