@@ -186,20 +186,20 @@ button { cursor: pointer; }
 .auth-toggle { border: 0; background: transparent; color: var(--ink); font-weight: 900; text-decoration: underline; }
 .auth-note { color: var(--muted); font-size: 12px; text-align: center; }
 .auth-entry-page { padding: 0 0 calc(104px + env(safe-area-inset-bottom)); background: #fff; }
-.auth-brand-bar { height: calc(122px + env(safe-area-inset-top)); display: flex; align-items: end; padding: calc(18px + env(safe-area-inset-top)) 32px 32px; color: #fff; background: #000; font-size: 42px; font-weight: 700; letter-spacing: -.02em; }
+.auth-brand-bar { height: calc(112px + env(safe-area-inset-top)); display: flex; align-items: end; padding: calc(18px + env(safe-area-inset-top)) 32px 28px; color: #fff; background: #000; font-size: 34px; font-weight: 700; letter-spacing: 0; }
 .auth-entry-card { padding: 38px 30px 0; background: #fff; }
 .auth-entry-form { display: grid; gap: 16px; min-width: 0; }
-.auth-entry-form h1 { margin: 0 0 10px; color: #000; font-size: 34px; line-height: 1.12; letter-spacing: -.01em; font-weight: 500; }
-.auth-entry-form input { width: 100%; min-height: 58px; border: 0; outline: 0; border-radius: 10px; padding: 0 20px; color: #000; background: #f3f3f3; font-size: 21px; font-weight: 500; }
+.auth-entry-form h1 { margin: 0 0 10px; color: #000; font-size: 28px; line-height: 1.15; letter-spacing: 0; font-weight: 550; }
+.auth-entry-form input { width: 100%; min-height: 56px; border: 0; outline: 0; border-radius: 10px; padding: 0 18px; color: #000; background: #f3f3f3; font-size: 17px; font-weight: 500; }
 .auth-entry-form input::placeholder { color: #6b7280; opacity: 1; }
 .auth-entry-form input:focus { box-shadow: inset 0 0 0 2px #111; background: #f7f7f7; }
-.auth-entry-form .auth-main-btn { min-height: 58px; border-radius: 10px; background: #000; font-size: 20px; font-weight: 700; }
-.auth-divider { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 15px; margin: 16px 0 6px; color: #555; font-size: 20px; }
+.auth-entry-form .auth-main-btn { min-height: 56px; border-radius: 10px; background: #000; font-size: 17px; font-weight: 750; }
+.auth-divider { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 15px; margin: 16px 0 6px; color: #555; font-size: 16px; }
 .auth-divider span { height: 1px; background: #555; }
-.auth-google-btn { min-height: 58px; display: inline-flex; align-items: center; justify-content: center; gap: 14px; width: 100%; border: 0; border-radius: 10px; color: #000; background: #eeeeee; font-size: 20px; font-weight: 700; }
+.auth-google-btn { min-height: 56px; display: inline-flex; align-items: center; justify-content: center; gap: 14px; width: 100%; border: 0; border-radius: 10px; color: #000; background: #eeeeee; font-size: 17px; font-weight: 750; }
 .google-mark { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 999px; color: #fff; background: #111; font-size: 16px; font-weight: 900; font-family: Arial, sans-serif; }
 .auth-entry-form .auth-toggle { margin-top: 2px; padding: 4px 0; color: #111; text-align: center; text-decoration: none; font-size: 14px; }
-.auth-entry-form .auth-note { margin-top: 44px; color: #5f6368; text-align: left; font-size: 16px; line-height: 1.65; }
+.auth-entry-form .auth-note { margin-top: 38px; color: #5f6368; text-align: left; font-size: 14px; line-height: 1.55; }
 .auth-entry-form .status-message { color: #111; font-size: 14px; line-height: 1.4; }
 .auth-dev-warning { margin: -4px 0 4px; padding: 10px 12px; border-radius: 10px; color: #374151; background: #f3f4f6; font-size: 13px; line-height: 1.35; }
 .callback-card { margin-top: 18vh; }
@@ -219,7 +219,7 @@ button { cursor: pointer; }
 .driver-controls, .driver-registration { margin-top: 18px; }
 .driver-dashboard-page { display: grid; align-content: start; gap: 12px; padding-left: 10px; padding-right: 10px; }
 .driver-dashboard-header { display: grid; grid-template-columns: minmax(0, 1fr) 46px; align-items: start; gap: 12px; padding: 4px 4px 2px; }
-.driver-dashboard-header h1 { margin: 0; font-size: 28px; letter-spacing: 0; }
+.driver-dashboard-header h1 { margin: 0; font-size: 24px; letter-spacing: 0; }
 .driver-dashboard-header p { margin: 5px 0 0; color: var(--muted); font-size: 13px; line-height: 1.35; }
 .driver-logout-btn { width: 46px; height: 46px; display: grid; place-items: center; padding: 0; border-radius: 999px; }
 .driver-command-card { display: grid; gap: 12px; padding: 14px; }
@@ -293,7 +293,7 @@ button { cursor: pointer; }
 .trip-step-header { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 8px; margin-bottom: 18px; }
 .trip-step-header a:first-child { width: 44px; height: 44px; display: grid; place-items: center; margin-left: -10px; border-radius: 999px; color: #080808; transition: background .18s ease, transform .18s ease; }
 .trip-step-header a:first-child:active { transform: scale(.96); background: #f4f4f5; }
-.trip-step-header strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font-size: 23px; line-height: 1.1; font-weight: 900; letter-spacing: 0; }
+.trip-step-header strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font-size: 21px; line-height: 1.1; font-weight: 900; letter-spacing: 0; }
 .trip-step-login { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 2px; white-space: nowrap; color: #050505; font-size: 15px; font-weight: 850; }
 .trip-step-chips { display: flex; gap: 9px; margin-bottom: 18px; overflow-x: auto; scrollbar-width: none; }
 .trip-step-chips::-webkit-scrollbar { display: none; }
@@ -307,7 +307,7 @@ button { cursor: pointer; }
 .trip-field-icon { width: 26px; height: 26px; display: grid; place-items: center; color: #050505; }
 .trip-field-icon.pickup svg { width: 20px; height: 20px; }
 .trip-step-field .place-input > span { display: none; }
-.trip-step-field input { width: 100%; min-height: 58px; border: 0; outline: 0; padding: 0; color: #050505; background: transparent; font-size: 21px; font-weight: 550; }
+.trip-step-field input { width: 100%; min-height: 58px; border: 0; outline: 0; padding: 0; color: #050505; background: transparent; font-size: 18px; font-weight: 550; }
 .trip-step-field input::placeholder { color: #71717a; opacity: 1; }
 .trip-step-field .place-suggestions { left: 0; right: 0; top: calc(100% + 10px); max-height: min(32dvh, 230px); border-radius: 18px; box-shadow: 0 18px 40px rgba(15,23,42,.12); }
 .trip-step-options { display: grid; gap: 0; animation: helper-in .2s ease-out; }
@@ -315,7 +315,7 @@ button { cursor: pointer; }
 .trip-step-options button:active, .trip-option-link:active, .trip-suggestion-group button:active { background: #fafafa; }
 .option-icon { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 999px; color: #050505; background: #f1f2f4; }
 .option-icon.primary { color: #fff; background: #050505; }
-.trip-step-options strong, .trip-suggestion-group strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 18px; line-height: 1.2; font-weight: 850; }
+.trip-step-options strong, .trip-suggestion-group strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; line-height: 1.2; font-weight: 850; }
 .trip-step-options small, .trip-suggestion-group small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 3px; color: #5f6368; font-size: 14px; line-height: 1.25; }
 .trip-suggestion-group { display: grid; }
 .trip-suggestion-group h2 { margin: 18px 0 5px; color: #6b7280; font-size: 12px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
@@ -352,12 +352,12 @@ button { cursor: pointer; }
   .quick-grid { grid-template-columns: 1fr; }
   .ride-option { grid-template-columns: 30px 1fr; }
   .ride-option b { grid-column: 2; }
-  .auth-brand-bar { padding-left: 24px; padding-right: 24px; font-size: 38px; }
+  .auth-brand-bar { padding-left: 24px; padding-right: 24px; font-size: 32px; }
   .auth-entry-card { padding-left: 22px; padding-right: 22px; }
-  .auth-entry-form h1 { font-size: 30px; }
-  .auth-entry-form input, .auth-entry-form .auth-main-btn, .auth-google-btn { min-height: 54px; font-size: 18px; }
+  .auth-entry-form h1 { font-size: 26px; }
+  .auth-entry-form input, .auth-entry-form .auth-main-btn, .auth-google-btn { min-height: 54px; font-size: 16px; }
   .auth-google-btn { gap: 10px; }
-  .trip-step-header strong { font-size: 24px; }
+  .trip-step-header strong { font-size: 20px; }
   .trip-step-login { font-size: 15px; }
-  .trip-step-field input { font-size: 21px; }
+  .trip-step-field input { font-size: 17px; }
 }
