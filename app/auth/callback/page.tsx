@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { setAccountMode, type AccountMode } from "@/lib/accountMode";
+import { ensureUserProfile, getCurrentUserProfile } from "@/lib/authProfile";
 import { ensureCustomerProfile } from "@/lib/customerProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -67,15 +68,16 @@ function AuthCallbackContent() {
         return;
       }
 
-      const role = userData.user.user_metadata?.role;
+      const { profile } = await getCurrentUserProfile();
+      if (profile && profile.role !== callbackMode && profile.role !== "admin") {
+        setError(`This account is registered as ${profile.role}. Please use the ${profile.role} portal.`);
+        return;
+      }
+
+      if (!profile) await ensureUserProfile(userData.user, callbackMode as "customer" | "driver");
       // fix: OAuth/email callback records whether the user entered customer or driver mode.
       setAccountMode(callbackMode as AccountMode);
-      if (next.startsWith("/client") && role !== "admin") {
-        if (!role) {
-          // fix: Google customer sign-in receives customer metadata without blocking the same email from driver mode.
-          await supabase.auth.updateUser({ data: { role: "customer" } });
-        }
-
+      if (next.startsWith("/client")) {
         // fix: Google/email callback creates the persistent customer profile before opening dashboard.
         await ensureCustomerProfile(userData.user);
       }

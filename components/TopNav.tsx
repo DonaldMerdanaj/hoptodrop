@@ -4,22 +4,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Menu, UserRound, X } from "lucide-react";
-import { clearAccountMode, getAccountMode } from "@/lib/accountMode";
+import { clearAccountMode } from "@/lib/accountMode";
+import { getCurrentUserProfile } from "@/lib/authProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type SessionRole = "customer" | "driver" | "admin" | null;
-
-function sessionRole(user: any, pathname: string): SessionRole {
-  if (!user) return null;
-  const role = user.user_metadata?.role;
-  const accountMode = getAccountMode();
-  if (role === "admin") return "admin";
-  if (accountMode === "driver") return "driver";
-  if (accountMode === "customer") return "customer";
-  // fix: one account can act as driver or customer; the current app area decides the menu mode.
-  if (pathname.startsWith("/driver")) return "driver";
-  return "customer";
-}
 
 async function driverAccountPath(userId: string) {
   if (!supabase) return "/driver";
@@ -55,17 +44,14 @@ export default function TopNav() {
     if (!isSupabaseConfigured || !supabase) return;
 
     async function loadSession() {
-      const { data } = await supabase!.auth.getSession();
-      const user = data.session?.user;
-      setRole(sessionRole(user, pathname));
+      const { user, profile } = await getCurrentUserProfile();
+      setRole((profile?.role as SessionRole) || null);
       setEmail(user?.email || "");
     }
 
     loadSession();
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      const user = session?.user;
-      setRole(sessionRole(user, pathname));
-      setEmail(user?.email || "");
+    const { data } = supabase.auth.onAuthStateChange(() => {
+      loadSession();
     });
 
     return () => data.subscription.unsubscribe();
@@ -94,14 +80,13 @@ export default function TopNav() {
       return;
     }
 
-    const { data } = await supabase.auth.getSession();
-    const user = data.session?.user;
+    const { user, profile } = await getCurrentUserProfile();
     if (!user) {
       router.push("/customer-login");
       return;
     }
 
-    const nextRole = sessionRole(user, pathname);
+    const nextRole = (profile?.role as SessionRole) || null;
     if (nextRole === "admin") router.push("/admin");
     else if (nextRole === "driver") router.push(await driverAccountPath(user.id));
     else router.push("/client/dashboard");

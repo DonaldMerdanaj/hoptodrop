@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getCurrentUserProfile } from "@/lib/authProfile";
 import type { Booking } from "@/lib/types";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -17,10 +18,14 @@ export default function CustomerBookings() {
         return;
       }
 
-      const { data: userData } = await supabase.auth.getUser();
-      customerId = userData.user?.id || "";
+      const { user, profile } = await getCurrentUserProfile();
+      customerId = user?.id || "";
       if (!customerId) {
         setMessage("Log in to see your ride history.");
+        return;
+      }
+      if (profile?.role !== "customer" && profile?.role !== "admin") {
+        setMessage("This dashboard is only for customer accounts.");
         return;
       }
 
@@ -45,6 +50,12 @@ export default function CustomerBookings() {
         const next = payload.new as Booking;
         if (!next?.id) return;
         if (customerId && next.customer_id !== customerId) return;
+        console.log("[booking:customer-realtime]", {
+          route: window.location.pathname,
+          bookingId: next.id,
+          customerId: next.customer_id,
+          driverId: next.driver_id
+        });
         setBookings((current) => {
           const exists = current.some((booking) => booking.id === next.id);
           if (exists) return current.map((booking) => (booking.id === next.id ? next : booking));

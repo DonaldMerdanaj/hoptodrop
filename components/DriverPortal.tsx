@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import AuthForm from "@/components/AuthForm";
 import DriverRegistrationForm from "@/components/DriverRegistrationForm";
-import { clearAccountMode, getAccountMode } from "@/lib/accountMode";
+import { clearAccountMode } from "@/lib/accountMode";
+import { getCurrentUserProfile } from "@/lib/authProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type AuthUser = {
@@ -20,11 +21,8 @@ export default function DriverPortal() {
       return;
     }
 
-    // fix: read the persisted session first so unconfirmed or signed-out drivers do not trigger noisy auth errors.
-    const { data } = await supabase.auth.getSession();
-    const isDriverMode = getAccountMode() === "driver";
-    // fix: a customer session visiting driver UI must not be re-stamped as driver mode.
-    setUser(data.session?.user && isDriverMode ? { email: data.session.user.email || "" } : null);
+    const { user: authUser, profile } = await getCurrentUserProfile();
+    setUser(authUser && profile?.role === "driver" ? { email: authUser.email || "" } : null);
     setLoading(false);
   }
 

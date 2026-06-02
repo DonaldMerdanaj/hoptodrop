@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { FileText, LogOut } from "lucide-react";
 import DriverRegistrationForm from "@/components/DriverRegistrationForm";
 import TopNav from "@/components/TopNav";
-import { clearAccountMode, getAccountMode } from "@/lib/accountMode";
+import { clearAccountMode } from "@/lib/accountMode";
+import { requireRole, roleDashboard } from "@/lib/authProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type DriverProfile = {
@@ -26,10 +27,14 @@ export default function DriverApplicationPage() {
         return;
       }
 
-      const { data } = await supabase.auth.getSession();
-      const user = data.session?.user;
-      if (!user || getAccountMode() !== "driver") {
+      const { user, profile: appProfile, allowed } = await requireRole(["driver", "admin"]);
+      if (!user) {
         router.replace("/driver");
+        return;
+      }
+
+      if (!allowed) {
+        router.replace(roleDashboard(appProfile?.role));
         return;
       }
 

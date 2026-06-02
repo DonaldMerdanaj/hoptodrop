@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Car, CheckCircle2, Clock3, LocateFixed, MapPin, Navigation, Search, Star } from "lucide-react";
 import PlaceInput, { type PlaceSelection } from "@/components/PlaceInput";
-import { clearAccountMode, getAccountMode } from "@/lib/accountMode";
+import { clearAccountMode } from "@/lib/accountMode";
+import { getCurrentUserProfile } from "@/lib/authProfile";
 import { getCustomerProfile, saveCustomerProfile } from "@/lib/customerProfile";
 import { loadGoogleMaps } from "@/lib/googleMaps";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
@@ -135,14 +136,10 @@ export default function BookingForm({
     if (!open || !isSupabaseConfigured || !supabase) return;
 
     async function checkCustomerSession() {
-      const { data } = await supabase!.auth.getSession();
-      const user = data.session?.user;
-      const role = user?.user_metadata?.role;
-      const accountMode = getAccountMode();
-      // fix: driver-mode sessions cannot book rides; the driver must log in again as a customer.
-      setCustomerLoggedIn(Boolean(user && role !== "admin" && accountMode !== "driver"));
+      const { user, profile: appProfile } = await getCurrentUserProfile();
+      setCustomerLoggedIn(Boolean(user && appProfile?.role === "customer"));
 
-      if (user && role !== "admin" && accountMode !== "driver") {
+      if (user && appProfile?.role === "customer") {
         // fix: booking details prefill from the saved customer profile in the database.
         const profile = await getCustomerProfile(user);
         setCustomerName((current) => current || profile?.full_name || "");
@@ -151,9 +148,10 @@ export default function BookingForm({
     }
 
     checkCustomerSession();
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      const role = session?.user?.user_metadata?.role;
-      setCustomerLoggedIn(Boolean(session?.user && role !== "admin" && getAccountMode() !== "driver"));
+    const { data } = supabase.auth.onAuthStateChange(() => {
+      getCurrentUserProfile().then(({ user, profile }) => {
+        setCustomerLoggedIn(Boolean(user && profile?.role === "customer"));
+      });
     });
 
     return () => data.subscription.unsubscribe();
@@ -349,9 +347,8 @@ export default function BookingForm({
       return;
     }
 
-    const { data: userData } = await supabase.auth.getUser();
-    const role = userData.user?.user_metadata?.role;
-    if (getAccountMode() === "driver") {
+    const { user, profile: appProfile } = await getCurrentUserProfile();
+    if (appProfile?.role === "driver") {
       await supabase.auth.signOut();
       clearAccountMode();
       setCustomerLoggedIn(false);
@@ -360,16 +357,24 @@ export default function BookingForm({
       return;
     }
 
-    if (!userData.user || role === "admin") {
+    if (!user || appProfile?.role !== "customer") {
       setMessage("Log in as a customer to confirm this ride.");
+      console.log("[booking:create:blocked]", {
+        route: window.location.pathname,
+        userId: user?.id,
+        email: user?.email,
+        role: appProfile?.role,
+        customerId: user?.id,
+        driverId: selectedDriver.id
+      });
       router.push("/customer-login");
       return;
     }
 
     setMessage("Requesting ride...");
     // fix: ride confirmation stores the latest customer details in the database profile.
-    const profile = userData.user
-      ? await saveCustomerProfile(userData.user, { full_name: customerName, phone: customerPhone })
+    const profile = user
+      ? await saveCustomerProfile(user, { full_name: customerName, phone: customerPhone })
       : null;
     const finalCustomerName = customerName || profile?.full_name || "HopToDrop rider";
     const finalCustomerPhone = customerPhone || profile?.phone || "+355";
@@ -390,16 +395,25 @@ export default function BookingForm({
       vehicle_type: selectedDriver.vehicle || "Taxi",
       ride_class: selectedDriver.rideClass,
       payment_method: paymentMethod,
-      driver_id: selectedDriver.id,
-      driver_name: selectedDriver.driver_name,
-      driver_vehicle: selectedDriver.vehicle || "Taxi",
+      driver_id: null,
+      driver_name: null,
+      driver_vehicle: null,
       driver_eta: selectedDriver.eta,
       estimated_price: estimatedPrice
     };
 
+    console.log("[booking:create]", {
+      route: window.location.pathname,
+      userId: user.id,
+      email: user.email,
+      role: appProfile.role,
+      customerId: user.id,
+      driverId: null
+    });
+
     const { data, error } = await supabase
       .from("bookings")
-      .insert({ ...booking, customer_id: userData.user.id, status: "assigned" })
+      .insert({ ...booking, customer_id: user.id, status: "pending" })
       .select("id, status")
       .single();
 
@@ -411,7 +425,7 @@ export default function BookingForm({
     setBookingId(data?.id || null);
 
     setStep("assigned");
-    setMessage(`Request sent to ${selectedDriver.driver_name}. Waiting for accept.`);
+    setMessage("Request sent to nearby online taxis. Waiting for a driver to accept.");
   }
 
   async function completeRide() {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminDashboard from "@/components/AdminDashboard";
+import { requireRole, roleDashboard } from "@/lib/authProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export default function AdminPage() {
@@ -17,17 +18,14 @@ export default function AdminPage() {
         return;
       }
 
-      // fix: protect admin with the same persisted browser session used by customer and driver login.
-      const { data } = await supabase.auth.getSession();
-      const user = data.session?.user;
-
+      const { user, profile, allowed } = await requireRole(["admin"]);
       if (!user) {
         router.replace("/customer-login");
         return;
       }
 
-      if (user.user_metadata?.role !== "admin") {
-        router.replace("/");
+      if (!allowed) {
+        router.replace(roleDashboard(profile?.role));
         return;
       }
 

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckCircle2, MapPinned, Navigation, Phone, XCircle } from "lucide-react";
+import { getCurrentUserProfile } from "@/lib/authProfile";
 import type { Booking } from "@/lib/types";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -34,9 +35,14 @@ export default function DriverRequests() {
       return;
     }
 
-    const { data: userData } = await supabase.auth.getUser();
-    const currentDriverId = userData.user?.id || emptyDriverId;
-    driverIdRef.current = userData.user?.id || null;
+    const { user, profile } = await getCurrentUserProfile();
+    if (!user || (profile?.role !== "driver" && profile?.role !== "admin")) {
+      if (showErrors) setMessage("Login as an approved driver to receive ride requests.");
+      return;
+    }
+
+    const currentDriverId = user.id || emptyDriverId;
+    driverIdRef.current = user.id || null;
 
     const { data, error } = await supabase
       .from("bookings")
@@ -113,16 +119,20 @@ export default function DriverRequests() {
       return;
     }
 
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
+    const { user, profile: appProfile } = await getCurrentUserProfile();
+    if (!user) {
       setMessage("Login before accepting rides.");
+      return;
+    }
+    if (appProfile?.role !== "driver") {
+      setMessage("Only driver accounts can accept rides.");
       return;
     }
 
     const { data: profile } = await supabase
       .from("driver_profiles")
       .select("full_name, vehicle_make, vehicle_model, license_plate, approval_status")
-      .eq("id", userData.user.id)
+      .eq("id", user.id)
       .maybeSingle();
 
     if (!profile || profile.approval_status !== "approved") {
@@ -131,17 +141,27 @@ export default function DriverRequests() {
     }
 
     const vehicle = `${profile.vehicle_make} ${profile.vehicle_model} ${profile.license_plate}`.trim();
+    console.log("[booking:accept]", {
+      route: window.location.pathname,
+      userId: user.id,
+      email: user.email,
+      role: appProfile.role,
+      bookingId: id,
+      driverId: user.id
+    });
+
     const { error } = await supabase
       .from("bookings")
       .update({
         status: "accepted",
-        driver_id: userData.user.id,
+        driver_id: user.id,
         driver_name: profile.full_name,
         driver_vehicle: vehicle,
         accepted_at: new Date().toISOString()
       })
       .eq("id", id)
-      .in("status", ["pending", "assigned"]);
+      .is("driver_id", null)
+      .eq("status", "pending");
 
     if (error) setMessage(error.message);
     else {
@@ -149,7 +169,7 @@ export default function DriverRequests() {
       setMessage("Ride accepted. Drive to the pickup point.");
       setBookings((current) => current.map((booking) => (
         booking.id === id
-          ? { ...booking, status: "accepted", driver_id: userData.user.id, driver_name: profile.full_name, driver_vehicle: vehicle, accepted_at: new Date().toISOString() }
+          ? { ...booking, status: "accepted", driver_id: user.id, driver_name: profile.full_name, driver_vehicle: vehicle, accepted_at: new Date().toISOString() }
           : booking
       )));
     }
@@ -157,12 +177,14 @@ export default function DriverRequests() {
 
   async function declineRide(id: string) {
     if (!isSupabaseConfigured || !supabase) return;
-    const { data: userData } = await supabase.auth.getUser();
+    const { user } = await getCurrentUserProfile();
+    if (!user) return;
 
     const { error } = await supabase
       .from("bookings")
-      .update({ status: "cancelled", driver_id: userData.user?.id || null })
-      .eq("id", id);
+      .update({ status: "cancelled" })
+      .eq("id", id)
+      .eq("driver_id", user.id);
 
     if (error) setMessage(error.message);
     else {
@@ -173,12 +195,18 @@ export default function DriverRequests() {
 
   async function updateRide(id: string, status: "arrived" | "started" | "completed") {
     if (!isSupabaseConfigured || !supabase) return;
+    const { user, profile } = await getCurrentUserProfile();
+    if (!user || profile?.role !== "driver") {
+      setMessage("Login as a driver to update this ride.");
+      return;
+    }
 
     const timestampColumn = status === "arrived" ? "arrived_at" : status === "started" ? "started_at" : "completed_at";
     const { error } = await supabase
       .from("bookings")
       .update({ status, [timestampColumn]: new Date().toISOString() })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("driver_id", user.id);
 
     if (error) setMessage(error.message);
     else {
@@ -280,7 +308,7 @@ export default function DriverRequests() {
               <span>{booking.passengers} passenger{booking.passengers === 1 ? "" : "s"}</span>
               <span>{booking.payment_method}</span>
             </div>
-            {booking.customer_phone && (
+            {booking.driver_id === driverIdRef.current && booking.customer_phone && (
               <a className="driver-call-link" href={`tel:${booking.customer_phone}`}>
                 <Phone size={15} />
                 Call customer

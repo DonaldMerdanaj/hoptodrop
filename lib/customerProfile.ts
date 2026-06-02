@@ -1,4 +1,5 @@
 import type { User } from "@supabase/supabase-js";
+import { ensureUserProfile } from "@/lib/authProfile";
 import { supabase } from "@/lib/supabase";
 
 export type CustomerProfile = {
@@ -23,6 +24,7 @@ function metadataAvatar(user: User) {
 
 export async function ensureCustomerProfile(user: User) {
   if (!supabase) return null;
+  await ensureUserProfile(user, "customer");
 
   const profile = {
     id: user.id,
@@ -68,6 +70,17 @@ export async function saveCustomerProfile(user: User, values: { full_name?: stri
     avatar_url: existing?.avatar_url || metadataAvatar(user),
     updated_at: new Date().toISOString()
   };
+
+  await supabase
+    .from("profiles")
+    .update({
+      full_name: profile.full_name,
+      phone: profile.phone,
+      avatar_url: profile.avatar_url,
+      updated_at: profile.updated_at
+    })
+    .eq("id", user.id)
+    .eq("role", "customer");
 
   // fix: customer-entered booking details update the persistent customer profile.
   const { data, error } = await supabase

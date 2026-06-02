@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import TopNav from "@/components/TopNav";
+import { requireRole } from "@/lib/authProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type { Booking, BookingStatus } from "@/lib/types";
 
@@ -26,6 +27,18 @@ export default function AdminDashboard() {
   async function load() {
     if (!isSupabaseConfigured || !supabase) {
       setMessage("Connect Supabase to use real dispatch.");
+      return;
+    }
+
+    const { allowed, user, profile } = await requireRole(["admin"]);
+    if (!allowed) {
+      setMessage("Admin access required.");
+      console.log("[admin:blocked]", {
+        route: window.location.pathname,
+        userId: user?.id,
+        email: user?.email,
+        role: profile?.role
+      });
       return;
     }
 

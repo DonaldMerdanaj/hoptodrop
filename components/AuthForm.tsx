@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { clearAccountMode, setAccountMode } from "@/lib/accountMode";
+import { ensureUserProfile, getCurrentUserProfile } from "@/lib/authProfile";
 import { ensureCustomerProfile } from "@/lib/customerProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -62,6 +63,15 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) setMessage(authMessage(error.message));
     else {
+      const { profile } = await getCurrentUserProfile();
+      if (profile && profile.role !== role && profile.role !== "admin") {
+        await supabase.auth.signOut();
+        clearAccountMode();
+        setMessage(`This account is registered as ${profile.role}. Use the ${profile.role} portal or create a separate approved account.`);
+        return;
+      }
+
+      if (!profile && data.user) await ensureUserProfile(data.user, role);
       if (role === "customer" && data.user) {
         // fix: one email can be used as customer or driver; customer mode stores a rider profile.
         await ensureCustomerProfile(data.user);
@@ -94,6 +104,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
     });
     if (error) setMessage(authMessage(error.message));
     else {
+      if (data.session && data.user) await ensureUserProfile(data.user, role);
       if (role === "customer" && data.session && data.user) {
         // fix: if email confirmation is disabled, create the customer profile immediately after signup.
         await ensureCustomerProfile(data.user);

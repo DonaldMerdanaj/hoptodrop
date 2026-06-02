@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { LogOut, MapPinned, UserRound } from "lucide-react";
 import CustomerBookings from "@/components/CustomerBookings";
 import TopNav from "@/components/TopNav";
-import { clearAccountMode, getAccountMode, setAccountMode } from "@/lib/accountMode";
+import { clearAccountMode } from "@/lib/accountMode";
+import { requireRole, roleDashboard } from "@/lib/authProfile";
 import { getCustomerProfile } from "@/lib/customerProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -31,37 +32,24 @@ export default function ClientDashboardPage() {
         return;
       }
 
-      // fix: read the persisted browser session first so dashboard does not show "Auth session missing" during OAuth restore.
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {
-        setError(sessionError.message);
-        setLoading(false);
-        return;
-      }
-
-      const sessionUser = sessionData.session?.user;
+      const { user: sessionUser, profile: appProfile, allowed } = await requireRole(["customer", "admin"]);
       if (!sessionUser) {
         router.replace("/customer-login");
         return;
       }
 
-      if (getAccountMode() === "driver") {
-        // fix: driver-mode sessions must log out before using customer dashboard or booking.
-        await supabase.auth.signOut();
-        clearAccountMode();
-        router.replace("/customer-login");
+      if (!allowed) {
+        router.replace(roleDashboard(appProfile?.role));
         return;
       }
 
-      // fix: opening the rider dashboard sets customer mode for this browser session.
-      setAccountMode("customer");
       // fix: dashboard reads the real customer profile row stored in Supabase.
-      const profile = await getCustomerProfile(sessionUser);
+      const customerProfile = await getCustomerProfile(sessionUser);
       setUser({
-        avatarUrl: profile?.avatar_url || "",
-        email: profile?.email || sessionUser.email || "",
-        name: profile?.full_name || sessionUser.email || "HopToDrop rider",
-        phone: profile?.phone || ""
+        avatarUrl: customerProfile?.avatar_url || "",
+        email: customerProfile?.email || sessionUser.email || "",
+        name: customerProfile?.full_name || sessionUser.email || "HopToDrop rider",
+        phone: customerProfile?.phone || ""
       });
       setLoading(false);
     }

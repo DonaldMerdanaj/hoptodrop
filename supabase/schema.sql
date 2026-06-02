@@ -40,6 +40,40 @@ create table if not exists public.customer_profiles (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text not null default '',
+  role text not null check (role in ('customer','driver','admin')),
+  full_name text not null default '',
+  phone text not null default '',
+  avatar_url text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role = 'admin'
+  );
+$$;
+
+create or replace function public.current_role()
+returns text
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select role from public.profiles where id = auth.uid();
+$$;
+
 alter table public.bookings add column if not exists driver_id uuid references auth.users(id) on delete set null;
 alter table public.bookings add column if not exists accepted_at timestamptz;
 alter table public.bookings add column if not exists arrived_at timestamptz;
@@ -99,6 +133,7 @@ create table if not exists public.booking_route_points (
 );
 
 alter table public.bookings enable row level security;
+alter table public.profiles enable row level security;
 alter table public.customer_profiles enable row level security;
 alter table public.driver_locations enable row level security;
 alter table public.driver_profiles enable row level security;
@@ -118,29 +153,84 @@ drop policy if exists "Authenticated users can create bookings" on public.bookin
 drop policy if exists "Customers can read own bookings" on public.bookings;
 drop policy if exists "Authenticated users can read all bookings (temp)" on public.bookings;
 drop policy if exists "Admins can update bookings" on public.bookings;
+drop policy if exists "Drivers can read pending and assigned bookings" on public.bookings;
+drop policy if exists "Drivers can accept and progress own bookings" on public.bookings;
+drop policy if exists "Admins can manage bookings" on public.bookings;
 
--- fix: require authenticated customer-owned inserts and remove public booking reads.
-create policy "Authenticated users can create bookings"
+create policy "Customers can create own bookings"
 on public.bookings for insert
 to authenticated
-with check (auth.uid() = customer_id);
+with check (
+  public.current_role() = 'customer'
+  and auth.uid() = customer_id
+  and driver_id is null
+  and status = 'pending'
+);
 
 create policy "Customers can read own bookings"
 on public.bookings for select
 to authenticated
 using (auth.uid() = customer_id);
 
--- TODO: Replace with admin role check before production
-create policy "Authenticated users can read all bookings (temp)"
+create policy "Drivers can read pending and assigned bookings"
 on public.bookings for select
 to authenticated
-using (true);
+using (
+  public.current_role() = 'driver'
+  and (
+    status = 'pending'
+    or driver_id = auth.uid()
+  )
+);
 
-create policy "Admins can update bookings"
+create policy "Admins can manage bookings"
+on public.bookings for all
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+create policy "Drivers can accept and progress own bookings"
 on public.bookings for update
 to authenticated
-using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-with check ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+using (
+  public.current_role() = 'driver'
+  and (
+    (status = 'pending' and driver_id is null)
+    or driver_id = auth.uid()
+  )
+)
+with check (
+  public.current_role() = 'driver'
+  and driver_id = auth.uid()
+  and status in ('accepted','arrived','started','completed','cancelled')
+);
+
+drop policy if exists "Users can read own app profile" on public.profiles;
+drop policy if exists "Users can create own app profile" on public.profiles;
+drop policy if exists "Users can update own app profile" on public.profiles;
+drop policy if exists "Admins can manage app profiles" on public.profiles;
+
+create policy "Users can read own app profile"
+on public.profiles for select
+to authenticated
+using (auth.uid() = id or public.is_admin());
+
+create policy "Users can create own app profile"
+on public.profiles for insert
+to authenticated
+with check (auth.uid() = id and role in ('customer','driver'));
+
+create policy "Users can update own app profile"
+on public.profiles for update
+to authenticated
+using (auth.uid() = id)
+with check (auth.uid() = id and role = public.current_role());
+
+create policy "Admins can manage app profiles"
+on public.profiles for all
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
 
 drop policy if exists "Customers can read own profile" on public.customer_profiles;
 drop policy if exists "Customers can create own profile" on public.customer_profiles;
@@ -167,28 +257,49 @@ with check (auth.uid() = id);
 create policy "Admins can read customer profiles"
 on public.customer_profiles for select
 to authenticated
-using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
-
-drop policy if exists "Drivers can accept and progress own bookings" on public.bookings;
-
-create policy "Drivers can accept and progress own bookings"
-on public.bookings for update
-to authenticated
-using (status in ('pending','assigned') or driver_id = auth.uid())
-with check (driver_id = auth.uid());
+using (public.is_admin());
 
 drop policy if exists "Authenticated users can read booking route points" on public.booking_route_points;
 drop policy if exists "Drivers can create own booking route points" on public.booking_route_points;
+drop policy if exists "Customers can read route points for own bookings" on public.booking_route_points;
+drop policy if exists "Drivers can read route points for own bookings" on public.booking_route_points;
+drop policy if exists "Admins can manage route points" on public.booking_route_points;
 
-create policy "Authenticated users can read booking route points"
+create policy "Customers can read route points for own bookings"
 on public.booking_route_points for select
 to authenticated
-using (true);
+using (
+  exists (
+    select 1 from public.bookings
+    where bookings.id = booking_route_points.booking_id
+    and bookings.customer_id = auth.uid()
+  )
+);
+
+create policy "Drivers can read route points for own bookings"
+on public.booking_route_points for select
+to authenticated
+using (driver_id = auth.uid());
 
 create policy "Drivers can create own booking route points"
 on public.booking_route_points for insert
 to authenticated
-with check (auth.uid() = driver_id);
+with check (
+  public.current_role() = 'driver'
+  and auth.uid() = driver_id
+  and exists (
+    select 1 from public.bookings
+    where bookings.id = booking_route_points.booking_id
+    and bookings.driver_id = auth.uid()
+    and bookings.status in ('accepted','arrived','started')
+  )
+);
+
+create policy "Admins can manage route points"
+on public.booking_route_points for all
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
 
 drop policy if exists "Anyone can read online drivers" on public.driver_locations;
 drop policy if exists "Drivers can insert own location" on public.driver_locations;
@@ -202,13 +313,13 @@ using (true);
 create policy "Drivers can insert own location"
 on public.driver_locations for insert
 to authenticated
-with check (auth.uid() = id);
+with check (auth.uid() = id and public.current_role() = 'driver');
 
 create policy "Drivers can update own location"
 on public.driver_locations for update
 to authenticated
-using (auth.uid() = id)
-with check (auth.uid() = id);
+using (auth.uid() = id and public.current_role() = 'driver')
+with check (auth.uid() = id and public.current_role() = 'driver');
 
 drop policy if exists "Drivers can read own profile" on public.driver_profiles;
 drop policy if exists "Drivers can create own profile" on public.driver_profiles;
@@ -218,24 +329,45 @@ drop policy if exists "Admins can approve driver profiles" on public.driver_prof
 create policy "Drivers can read own profile"
 on public.driver_profiles for select
 to authenticated
-using (auth.uid() = id or (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+using (auth.uid() = id or public.is_admin());
 
 create policy "Drivers can create own profile"
 on public.driver_profiles for insert
 to authenticated
-with check (auth.uid() = id);
+with check (auth.uid() = id and public.current_role() = 'driver');
 
 create policy "Drivers can update own profile before approval"
 on public.driver_profiles for update
 to authenticated
-using (auth.uid() = id and approval_status in ('draft','submitted','rejected'))
-with check (auth.uid() = id and approval_status in ('draft','submitted'));
+using (auth.uid() = id and public.current_role() = 'driver' and approval_status in ('draft','submitted','rejected'))
+with check (auth.uid() = id and public.current_role() = 'driver' and approval_status in ('draft','submitted'));
 
 create policy "Admins can approve driver profiles"
 on public.driver_profiles for update
 to authenticated
-using ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-with check ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+using (public.is_admin())
+with check (public.is_admin());
+
+create or replace function public.set_booking_auth_ids()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if tg_op = 'INSERT' then
+    new.customer_id := auth.uid();
+    new.driver_id := null;
+    new.status := 'pending';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists set_booking_auth_ids_before_insert on public.bookings;
+create trigger set_booking_auth_ids_before_insert
+before insert on public.bookings
+for each row execute function public.set_booking_auth_ids();
 
 do $$
 begin

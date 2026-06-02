@@ -6,7 +6,8 @@ import { CarFront, CheckCircle2, LogOut, MapPinned } from "lucide-react";
 import DriverLocationSender from "@/components/DriverLocationSender";
 import DriverRequests from "@/components/DriverRequests";
 import TopNav from "@/components/TopNav";
-import { clearAccountMode, getAccountMode } from "@/lib/accountMode";
+import { clearAccountMode } from "@/lib/accountMode";
+import { requireRole, roleDashboard } from "@/lib/authProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type DriverUser = {
@@ -36,25 +37,23 @@ export default function DriverDashboardPage() {
         return;
       }
 
-      // fix: driver dashboard is protected and uses the persisted session before rendering live driver tools.
-      const { data } = await supabase.auth.getSession();
-      if (!data.session?.user) {
+      const { user: sessionUser, profile: appProfile, allowed } = await requireRole(["driver", "admin"]);
+      if (!sessionUser) {
         router.replace("/driver");
         return;
       }
 
-      if (getAccountMode() !== "driver") {
-        // fix: visiting driver dashboard with a customer session must not switch the account into driver mode.
-        router.replace("/driver");
+      if (!allowed) {
+        router.replace(roleDashboard(appProfile?.role));
         return;
       }
 
-      setUser({ email: data.session.user.email || "Driver account" });
+      setUser({ email: sessionUser.email || "Driver account" });
 
       const { data: profileData } = await supabase
         .from("driver_profiles")
         .select("approval_status, full_name, vehicle_make, vehicle_model, license_plate")
-        .eq("id", data.session.user.id)
+        .eq("id", sessionUser.id)
         .maybeSingle();
 
       const nextProfile = profileData as DriverProfile | null;

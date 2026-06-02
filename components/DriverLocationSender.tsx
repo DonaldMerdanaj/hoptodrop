@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { getCurrentUserProfile } from "@/lib/authProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type DriverProfile = {
@@ -21,13 +22,13 @@ export default function DriverLocationSender() {
   useEffect(() => {
     async function loadProfile() {
       if (!isSupabaseConfigured || !supabase) return;
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return;
+      const { user, profile: appProfile } = await getCurrentUserProfile();
+      if (!user || (appProfile?.role !== "driver" && appProfile?.role !== "admin")) return;
 
       const { data } = await supabase
         .from("driver_profiles")
         .select("full_name, phone, approval_status, vehicle_make, vehicle_model, license_plate")
-        .eq("id", userData.user.id)
+        .eq("id", user.id)
         .maybeSingle();
 
       if (data) setProfile(data as DriverProfile);
@@ -35,7 +36,7 @@ export default function DriverLocationSender() {
       const { data: location } = await supabase
         .from("driver_locations")
         .select("status")
-        .eq("id", userData.user.id)
+        .eq("id", user.id)
         .maybeSingle();
       setOnline(location?.status === "online");
     }
@@ -79,10 +80,9 @@ export default function DriverLocationSender() {
     // fix: store the watch id so it can be cleared on offline/unmount.
     watchIdRef.current = navigator.geolocation.watchPosition(
       async (position) => {
-        const { data: userData } = await client.auth.getUser();
-        const user = userData.user;
-        if (!user) {
-          setMessage("Please login first.");
+        const { user, profile: appProfile } = await getCurrentUserProfile();
+        if (!user || appProfile?.role !== "driver") {
+          setMessage("Please login as a driver first.");
           return;
         }
 

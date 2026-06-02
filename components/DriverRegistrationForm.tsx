@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ensureUserProfile } from "@/lib/authProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type DriverForm = {
@@ -88,6 +89,8 @@ export default function DriverRegistrationForm() {
       setMessage("Create or login to a driver account first.");
       return;
     }
+
+    await ensureUserProfile(user, "driver");
 
     const payload = {
       id: user.id,
