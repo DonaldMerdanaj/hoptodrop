@@ -62,6 +62,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath, title, note
     }
 
     await preparePortalSession();
+    setAccountMode(role);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) setMessage(authMessage(error.message));
     else {
@@ -102,6 +103,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath, title, note
     }
 
     await preparePortalSession();
+    setAccountMode(role);
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -167,6 +169,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath, title, note
     }
 
     await preparePortalSession();
+    setAccountMode(role);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {

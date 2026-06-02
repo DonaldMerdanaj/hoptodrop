@@ -7,7 +7,7 @@ import BookingForm from "@/components/BookingForm";
 import type { PlaceSelection } from "@/components/PlaceInput";
 import RideLauncher from "@/components/RideLauncher";
 import TopNav from "@/components/TopNav";
-import { getCurrentUserProfile } from "@/lib/authProfile";
+import { currentAccountModeRole, ensureUserProfile, getCurrentUserProfile } from "@/lib/authProfile";
 import { driverDestination } from "@/lib/driverRouting";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
@@ -34,6 +34,12 @@ export default function Home() {
       }
 
       const { user, profile } = await getCurrentUserProfile();
+      if (user && !profile && currentAccountModeRole() === "driver") {
+        await ensureUserProfile(user, "driver");
+        router.replace(await driverDestination(user.id));
+        return;
+      }
+
       if (user && profile?.role === "driver") {
         router.replace(await driverDestination(user.id));
         return;
