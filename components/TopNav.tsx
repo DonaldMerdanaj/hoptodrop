@@ -46,8 +46,19 @@ export default function TopNav() {
     return () => data.subscription.unsubscribe();
   }, [pathname]);
 
-  function goLiveMap() {
+  async function goLiveMap(event: React.MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault();
     setOpen(false);
+    const { user, profile } = await getCurrentUserProfile();
+    if (user && profile?.role === "driver") {
+      router.push(await driverDestination(user.id));
+      return;
+    }
+    if (user && profile?.role === "admin") {
+      router.push("/admin");
+      return;
+    }
+    router.push("/");
     window.dispatchEvent(new Event("taxi-go-live-map"));
   }
 
@@ -58,7 +69,7 @@ export default function TopNav() {
     setOpen(false);
     setRole(null);
     setEmail("");
-    router.replace("/");
+    router.replace(pathname.startsWith("/driver") ? "/driver" : "/customer-login");
   }
 
   async function openAccount() {

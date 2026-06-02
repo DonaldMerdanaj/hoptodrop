@@ -11,6 +11,8 @@ type AuthFormProps = {
   role: "customer" | "driver";
   onAuthChange?: () => void | Promise<void>;
   redirectPath?: string;
+  title?: string;
+  note?: string;
 };
 
 function authMessage(errorMessage: string) {
@@ -33,7 +35,7 @@ function confirmationRedirectUrl(role: "customer" | "driver", redirectPath?: str
   return `${window.location.origin}/auth/callback?next=${encodeURIComponent(authRedirectFor(role, redirectPath))}&mode=${role}`;
 }
 
-export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormProps) {
+export default function AuthForm({ role, onAuthChange, redirectPath, title, note }: AuthFormProps) {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [showPassword, setShowPassword] = useState(false);
@@ -193,7 +195,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
 
   return (
     <form className="auth-entry-form" onSubmit={submitAuth}>
-      <h1>What's your email?</h1>
+      <h1>{title || "What's your email?"}</h1>
       {process.env.NODE_ENV !== "production" && (
         <p className="auth-dev-warning">
           To test driver and customer at the same time, use incognito or a different browser.
@@ -237,7 +239,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
       <button className="auth-toggle" type="button" onClick={resendConfirmation}>
         Resend confirmation email
       </button>
-      <small className="auth-note">By continuing, you agree to use your email for secure HopToDrop account access.</small>
+      <small className="auth-note">{note || "By continuing, you agree to use your email for secure HopToDrop account access."}</small>
       {message && <p className="status-message">{message}</p>}
     </form>
   );

@@ -202,6 +202,21 @@ button { cursor: pointer; }
 .auth-entry-form .auth-note { margin-top: 38px; color: #5f6368; text-align: left; font-size: 14px; line-height: 1.55; }
 .auth-entry-form .status-message { color: #111; font-size: 14px; line-height: 1.4; }
 .auth-dev-warning { margin: -4px 0 4px; padding: 10px 12px; border-radius: 10px; color: #374151; background: #f3f4f6; font-size: 13px; line-height: 1.35; }
+.customer-auth-page { background: #fff; }
+.customer-auth-hero { display: grid; align-content: end; gap: 6px; }
+.customer-auth-hero span { display: block; }
+.customer-auth-hero small { display: block; color: rgba(255,255,255,.72); font-size: 13px; font-weight: 650; letter-spacing: 0; }
+.driver-auth-page { background: #f8fafc; }
+.driver-auth-hero { min-height: calc(214px + env(safe-area-inset-top)); display: grid; align-content: end; gap: 18px; padding: calc(20px + env(safe-area-inset-top)) 26px 26px; color: #fff; background: linear-gradient(180deg, #111827 0%, #020617 100%); }
+.driver-auth-hero div { display: grid; gap: 8px; }
+.driver-auth-hero span { color: #d1d5db; font-size: 13px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+.driver-auth-hero strong { font-size: 31px; line-height: 1.05; letter-spacing: 0; }
+.driver-auth-hero p { margin: 0; max-width: 340px; color: #cbd5e1; font-size: 14px; line-height: 1.45; }
+.driver-auth-card { margin: -12px 14px 0; padding: 22px 20px 0; border-radius: 24px 24px 0 0; background: #fff; box-shadow: 0 -16px 40px rgba(15,23,42,.12); }
+.driver-auth-page .auth-entry-form h1 { font-size: 24px; font-weight: 850; }
+.driver-auth-page .auth-entry-form input { background: #f8fafc; border: 1px solid #e5e7eb; }
+.driver-auth-page .auth-entry-form input:focus { background: #fff; box-shadow: 0 0 0 3px rgba(17,24,39,.08); }
+.driver-auth-page .auth-google-btn { background: #f3f4f6; }
 .callback-card { margin-top: 18vh; }
 .dashboard-card { display: grid; gap: 14px; }
 .profile-panel { display: grid; grid-template-columns: 58px 1fr; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface-soft); }
@@ -354,6 +369,9 @@ button { cursor: pointer; }
   .ride-option b { grid-column: 2; }
   .auth-brand-bar { padding-left: 24px; padding-right: 24px; font-size: 32px; }
   .auth-entry-card { padding-left: 22px; padding-right: 22px; }
+  .driver-auth-card { margin-left: 10px; margin-right: 10px; padding-left: 18px; padding-right: 18px; }
+  .driver-auth-hero { padding-left: 22px; padding-right: 22px; }
+  .driver-auth-hero strong { font-size: 28px; }
   .auth-entry-form h1 { font-size: 26px; }
   .auth-entry-form input, .auth-entry-form .auth-main-btn, .auth-google-btn { min-height: 54px; font-size: 16px; }
   .auth-google-btn { gap: 10px; }

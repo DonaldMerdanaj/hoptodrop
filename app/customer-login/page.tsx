@@ -36,11 +36,21 @@ export default function CustomerLoginPage() {
   }, [router]);
 
   return (
-    <main className="auth-page auth-entry-page">
-      <header className="auth-brand-bar">HopToDrop</header>
+    <main className="auth-page auth-entry-page customer-auth-page">
+      <header className="auth-brand-bar customer-auth-hero">
+        <span>HopToDrop</span>
+        <small>Book rides across Albania</small>
+      </header>
       <section className="auth-entry-card">
         {loading && <p className="status-message">Checking customer account...</p>}
-        {!loading && <AuthForm role="customer" redirectPath="/client/dashboard" />}
+        {!loading && (
+          <AuthForm
+            role="customer"
+            redirectPath="/client/dashboard"
+            title="Start your ride"
+            note="Use your customer account to book transfers, follow your driver, and see ride history."
+          />
+        )}
       </section>
     </main>
   );

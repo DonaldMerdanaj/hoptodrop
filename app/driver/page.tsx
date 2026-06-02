@@ -47,14 +47,22 @@ export default function DriverPage() {
   }, [router]);
 
   return (
-    <main className="auth-page auth-entry-page">
-      <header className="auth-brand-bar">HopToDrop</header>
-      <section className="auth-entry-card">
+    <main className="auth-page auth-entry-page driver-auth-page">
+      <header className="driver-auth-hero">
+        <div>
+          <span>HopToDrop</span>
+          <strong>Driver portal</strong>
+        </div>
+        <p>Sign in to manage applications, go online, receive trips, and complete rides.</p>
+      </header>
+      <section className="auth-entry-card driver-auth-card">
         {loading && <p className="status-message">Checking driver account...</p>}
         {!loading && (
           <AuthForm
             role="driver"
             redirectPath="/driver"
+            title="Driver sign in"
+            note="Driver accounts are reviewed before going online. Approved drivers open the live dashboard automatically."
             onAuthChange={async () => {
               if (!supabase) return;
               const { user, profile } = await getCurrentUserProfile();
