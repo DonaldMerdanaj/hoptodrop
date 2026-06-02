@@ -5,8 +5,6 @@ import Link from "next/link";
 import {
   ArrowLeft,
   Building2,
-  ChevronDown,
-  Clock,
   Crosshair,
   MapPin,
   Navigation,
@@ -15,9 +13,7 @@ import {
 } from "lucide-react";
 import PlaceInput, { type PlaceSelection } from "@/components/PlaceInput";
 import {
-  loadDraftPickupTime,
   loadDraftPlace,
-  saveDraftPickupTime,
   saveDraftPlace
 } from "@/lib/tripDraft";
 
@@ -44,7 +40,6 @@ const popularDestinations: PlaceSelection[] = [
 export default function TripStepPage({ step }: { step: TripStep }) {
   const [pickup, setPickup] = useState<PlaceSelection>(emptyPickup);
   const [dropoff, setDropoff] = useState<PlaceSelection>(emptyDropoff);
-  const [pickupTime, setPickupTime] = useState("Pick up now");
   const [activeField, setActiveField] = useState<"pickup" | "dropoff" | null>(
     step === "dropoff" ? "dropoff" : "pickup"
   );
@@ -52,7 +47,6 @@ export default function TripStepPage({ step }: { step: TripStep }) {
   useEffect(() => {
     setPickup(loadDraftPlace("pickup") || emptyPickup);
     setDropoff(loadDraftPlace("dropoff") || emptyDropoff);
-    setPickupTime(loadDraftPickupTime());
   }, []);
 
   function selectPickup(place: PlaceSelection) {
@@ -63,11 +57,6 @@ export default function TripStepPage({ step }: { step: TripStep }) {
   function selectDropoff(place: PlaceSelection) {
     setDropoff(place);
     saveDraftPlace("dropoff", place);
-  }
-
-  function choosePickupTime(value: string) {
-    setPickupTime(value);
-    saveDraftPickupTime(value);
   }
 
   function useCurrentLocation() {
@@ -101,19 +90,6 @@ export default function TripStepPage({ step }: { step: TripStep }) {
           Account
         </Link>
       </header>
-
-      <section className="trip-step-chips">
-        <button className={step === "pickuptime" ? "active" : ""} type="button" onClick={() => choosePickupTime("Pick up now")}>
-          <Clock size={18} fill="currentColor" />
-          {pickupTime}
-          <ChevronDown size={17} />
-        </button>
-        <button type="button">
-          <UserRound size={18} fill="currentColor" />
-          For me
-          <ChevronDown size={17} />
-        </button>
-      </section>
 
       <section className="trip-step-card">
         <div className={`trip-step-field ${activeField === "pickup" ? "active" : ""}`}>
@@ -159,21 +135,6 @@ export default function TripStepPage({ step }: { step: TripStep }) {
           <TripSuggestionGroup title="Recent locations" places={recentLocations} onSelect={choosePickupSuggestion} />
           <TripSuggestionGroup title="Airport suggestions" places={airportSuggestions} icon="airport" onSelect={choosePickupSuggestion} />
           <TripSuggestionGroup title="Popular destinations" places={popularDestinations} onSelect={choosePickupSuggestion} />
-        </section>
-      )}
-
-      {step === "pickuptime" && (
-        <section className="trip-time-options">
-          {["Pick up now", "In 15 min", "In 30 min", "Schedule later"].map((option) => (
-            <button
-              className={pickupTime === option ? "active" : ""}
-              key={option}
-              type="button"
-              onClick={() => choosePickupTime(option)}
-            >
-              {option}
-            </button>
-          ))}
         </section>
       )}
 

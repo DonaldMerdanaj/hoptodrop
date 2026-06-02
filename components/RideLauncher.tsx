@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Clock, Square, UserRound } from "lucide-react";
+import { Square } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { PlaceSelection } from "@/components/PlaceInput";
-import { loadDraftPickupTime, loadDraftPlace } from "@/lib/tripDraft";
+import { loadDraftPlace } from "@/lib/tripDraft";
 
 const emptyPickup: PlaceSelection = { name: "", lat: 41.3275, lng: 19.8187 };
 const emptyDestination: PlaceSelection = { name: "", lat: 41.3194, lng: 19.8157 };
@@ -19,7 +19,6 @@ export default function RideLauncher({
   const router = useRouter();
   const [pickup, setPickup] = useState<PlaceSelection>(initialPickup || emptyPickup);
   const [destination, setDestination] = useState<PlaceSelection>(emptyDestination);
-  const [pickupTime, setPickupTime] = useState("Pick up now");
 
   useEffect(() => {
     const savedPickup = loadDraftPlace("pickup");
@@ -28,7 +27,6 @@ export default function RideLauncher({
     if (savedPickup) setPickup(savedPickup);
     else if (initialPickup) setPickup(initialPickup);
     if (savedDropoff) setDestination(savedDropoff);
-    setPickupTime(loadDraftPickupTime());
   }, [initialPickup]);
 
   function startTripSearch() {
@@ -53,16 +51,6 @@ export default function RideLauncher({
         </span>
         <button className="uber-location-button muted" type="button" onClick={() => router.push("/dropoff")}>
           <span>{destination.name || "Drop-off location"}</span>
-        </button>
-      </div>
-      <div className="uber-trip-chips">
-        <button type="button" onClick={() => router.push("/pickuptime")}>
-          <Clock size={18} fill="currentColor" />
-          {pickupTime}
-        </button>
-        <button type="button">
-          <UserRound size={18} fill="currentColor" />
-          For me
         </button>
       </div>
       <button className="primary-btn launcher-submit" type="button" onClick={startTripSearch}>
