@@ -16,6 +16,7 @@ type PlaceInputProps = {
   value: PlaceSelection;
   onChange: (place: PlaceSelection) => void;
   onPlaceSelected?: (place: PlaceSelection) => void;
+  onFocusChange?: (focused: boolean) => void;
   placeholder: string;
 };
 
@@ -26,7 +27,7 @@ type Suggestion = {
   description: string;
 };
 
-export default function PlaceInput({ label, value, onChange, onPlaceSelected, placeholder }: PlaceInputProps) {
+export default function PlaceInput({ label, value, onChange, onPlaceSelected, onFocusChange, placeholder }: PlaceInputProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const placesNodeRef = useRef<HTMLDivElement | null>(null);
   const sessionTokenRef = useRef<any>(null);
@@ -125,8 +126,14 @@ export default function PlaceInput({ label, value, onChange, onPlaceSelected, pl
         ref={inputRef}
         value={value.name}
         onChange={(event) => onChange({ ...value, name: event.target.value })}
-        onFocus={() => setFocused(true)}
-        onBlur={() => window.setTimeout(() => setFocused(false), 140)}
+        onFocus={() => {
+          setFocused(true);
+          onFocusChange?.(true);
+        }}
+        onBlur={() => window.setTimeout(() => {
+          setFocused(false);
+          onFocusChange?.(false);
+        }, 140)}
         placeholder={placeholder}
         autoComplete="off"
         required
