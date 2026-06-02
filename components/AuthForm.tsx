@@ -9,7 +9,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type AuthFormProps = {
   role: "customer" | "driver";
-  onAuthChange?: () => void;
+  onAuthChange?: () => void | Promise<void>;
   redirectPath?: string;
 };
 
@@ -80,8 +80,8 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
       // fix: booking is blocked for driver-mode sessions until the user logs in as a customer.
       setAccountMode(role);
       setMessage("Signed in successfully.");
-      onAuthChange?.();
-      router.replace(authRedirectFor(role, redirectPath));
+      if (onAuthChange) await onAuthChange();
+      else router.replace(authRedirectFor(role, redirectPath));
     }
   }
 

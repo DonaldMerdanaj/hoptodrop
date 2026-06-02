@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthForm from "@/components/AuthForm";
-import { getCurrentUserProfile, roleDashboard } from "@/lib/authProfile";
+import { ensureUserProfile, getCurrentUserProfile, roleDashboard } from "@/lib/authProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 async function driverDestination(userId: string) {
@@ -35,13 +35,19 @@ export default function DriverPage() {
         return;
       }
 
-      if (profile?.role && profile.role !== "driver" && profile.role !== "admin") {
+      if (!profile) {
+        await ensureUserProfile(user, "driver");
+        router.replace(await driverDestination(user.id));
+        return;
+      }
+
+      if (profile.role !== "driver" && profile.role !== "admin") {
         router.replace(roleDashboard(profile.role));
         return;
       }
 
-      if (profile?.role !== "driver") {
-        setLoading(false);
+      if (profile.role === "admin") {
+        router.replace("/admin");
         return;
       }
 
@@ -64,8 +70,17 @@ export default function DriverPage() {
               if (!supabase) return;
               const { user, profile } = await getCurrentUserProfile();
               if (!user) return;
-              if (profile?.role && profile.role !== "driver" && profile.role !== "admin") {
+              if (!profile) {
+                await ensureUserProfile(user, "driver");
+                router.replace(await driverDestination(user.id));
+                return;
+              }
+              if (profile.role !== "driver" && profile.role !== "admin") {
                 router.replace(roleDashboard(profile.role));
+                return;
+              }
+              if (profile.role === "admin") {
+                router.replace("/admin");
                 return;
               }
               router.replace(await driverDestination(user.id));
