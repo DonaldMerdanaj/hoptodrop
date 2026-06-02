@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CarFront, CheckCircle2, FileText, LogOut, MapPinned } from "lucide-react";
+import { CarFront, CheckCircle2, LogOut, MapPinned } from "lucide-react";
 import DriverLocationSender from "@/components/DriverLocationSender";
-import DriverRegistrationForm from "@/components/DriverRegistrationForm";
 import DriverRequests from "@/components/DriverRequests";
 import TopNav from "@/components/TopNav";
 import { clearAccountMode, getAccountMode } from "@/lib/accountMode";
@@ -40,13 +39,13 @@ export default function DriverDashboardPage() {
       // fix: driver dashboard is protected and uses the persisted session before rendering live driver tools.
       const { data } = await supabase.auth.getSession();
       if (!data.session?.user) {
-        router.replace("/driver-login");
+        router.replace("/driver");
         return;
       }
 
       if (getAccountMode() !== "driver") {
         // fix: visiting driver dashboard with a customer session must not switch the account into driver mode.
-        router.replace("/driver-login");
+        router.replace("/driver");
         return;
       }
 
@@ -58,7 +57,13 @@ export default function DriverDashboardPage() {
         .eq("id", data.session.user.id)
         .maybeSingle();
 
-      setProfile(profileData as DriverProfile | null);
+      const nextProfile = profileData as DriverProfile | null;
+      if (nextProfile?.approval_status !== "approved") {
+        router.replace("/driver/formaplication");
+        return;
+      }
+
+      setProfile(nextProfile);
       setLoading(false);
     }
 
@@ -69,19 +74,17 @@ export default function DriverDashboardPage() {
     if (!supabase) return;
     await supabase.auth.signOut();
     clearAccountMode();
-    router.replace("/driver-login");
+    router.replace("/driver");
   }
-
-  const isApproved = profile?.approval_status === "approved";
 
   return (
     <main className="auth-page driver-dashboard-page">
       <TopNav />
       <section className="driver-dashboard-header">
         <div>
-          <div className="eyebrow">{isApproved ? "Driver dashboard" : "Driver registration"}</div>
-          <h1>{isApproved ? "Driver app" : "Complete application"}</h1>
-          <p>{isApproved ? "Go online, accept trips, navigate, and complete rides." : "Submit your driver details. After admin approval, this page becomes your live driver dashboard."}</p>
+          <div className="eyebrow">Driver dashboard</div>
+          <h1>Driver app</h1>
+          <p>Go online, accept trips, navigate, and complete rides.</p>
         </div>
         <button className="secondary-btn driver-logout-btn" type="button" onClick={signOut}>
           <LogOut size={17} />
@@ -95,7 +98,7 @@ export default function DriverDashboardPage() {
         <>
           <section className="auth-card driver-command-card">
             <div className="driver-command-top">
-              <span className={profile?.approval_status === "approved" ? "driver-live-dot approved" : "driver-live-dot"} />
+              <span className="driver-live-dot approved" />
               <div>
                 <strong>{profile?.full_name || "Driver account"}</strong>
                 <span>{user.email}</span>
@@ -120,28 +123,13 @@ export default function DriverDashboardPage() {
             </div>
           </section>
 
-          {isApproved ? (
-            <>
-              <section className="auth-card driver-dashboard-card">
-                <DriverLocationSender />
-              </section>
+          <section className="auth-card driver-dashboard-card">
+            <DriverLocationSender />
+          </section>
 
-              <section className="auth-card driver-dashboard-card">
-                <DriverRequests />
-              </section>
-            </>
-          ) : (
-            <section className="auth-card driver-dashboard-card">
-              <div className="driver-form-intro">
-                <FileText size={19} />
-                <div>
-                  <strong>{profile ? "Update driver application" : "Complete driver application"}</strong>
-                  <span>{profile?.approval_status === "submitted" ? "Your application is waiting for admin approval." : "Fill this in once. You can go online after approval."}</span>
-                </div>
-              </div>
-              <DriverRegistrationForm />
-            </section>
-          )}
+          <section className="auth-card driver-dashboard-card">
+            <DriverRequests />
+          </section>
         </>
       )}
     </main>

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { CalendarCheck, Car, UserRound } from "lucide-react";
 
 const items = [
-  { href: "/driver-login", label: "Driver", icon: Car },
+  { href: "/driver", label: "Driver", icon: Car },
   { href: "/customer-login", label: "Customer", icon: UserRound },
   { href: "/", label: "Booking", icon: CalendarCheck }
 ];
@@ -19,7 +19,7 @@ export default function BottomNav() {
         const Icon = item.icon;
         const active =
           pathname === item.href ||
-          (item.href === "/driver-login" && pathname.startsWith("/driver")) ||
+          (item.href === "/driver" && pathname.startsWith("/driver")) ||
           (item.href === "/customer-login" && pathname.startsWith("/client"));
         return (
           <Link key={item.href} href={item.href} className={active ? "active" : ""}>

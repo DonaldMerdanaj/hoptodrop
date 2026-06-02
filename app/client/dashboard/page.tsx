@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOut, MapPinned, UserRound } from "lucide-react";
-import BottomNav from "@/components/BottomNav";
 import CustomerBookings from "@/components/CustomerBookings";
 import TopNav from "@/components/TopNav";
 import { clearAccountMode, getAccountMode, setAccountMode } from "@/lib/accountMode";
@@ -120,7 +119,6 @@ export default function ClientDashboardPage() {
           </>
         )}
       </section>
-      <BottomNav />
     </main>
   );
 }

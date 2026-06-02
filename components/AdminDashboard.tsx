@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import BottomNav from "@/components/BottomNav";
 import TopNav from "@/components/TopNav";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type { Booking, BookingStatus } from "@/lib/types";
@@ -114,7 +113,6 @@ export default function AdminDashboard() {
           {bookings.length === 0 && <p>No rides yet.</p>}
         </div>
       </section>
-      <BottomNav />
     </main>
   );
 }

@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Menu, X } from "lucide-react";
-import { clearAccountMode } from "@/lib/accountMode";
+import { Menu, UserRound, X } from "lucide-react";
+import { clearAccountMode, getAccountMode } from "@/lib/accountMode";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type SessionRole = "customer" | "driver" | "admin" | null;
@@ -12,10 +12,25 @@ type SessionRole = "customer" | "driver" | "admin" | null;
 function sessionRole(user: any, pathname: string): SessionRole {
   if (!user) return null;
   const role = user.user_metadata?.role;
+  const accountMode = getAccountMode();
   if (role === "admin") return "admin";
+  if (accountMode === "driver") return "driver";
+  if (accountMode === "customer") return "customer";
   // fix: one account can act as driver or customer; the current app area decides the menu mode.
   if (pathname.startsWith("/driver")) return "driver";
   return "customer";
+}
+
+async function driverAccountPath(userId: string) {
+  if (!supabase) return "/driver";
+
+  const { data } = await supabase
+    .from("driver_profiles")
+    .select("approval_status")
+    .eq("id", userId)
+    .maybeSingle();
+
+  return data?.approval_status === "approved" ? "/driver/dashboard" : "/driver/formaplication";
 }
 
 export default function TopNav() {
@@ -71,15 +86,42 @@ export default function TopNav() {
     router.replace("/");
   }
 
+  async function openAccount() {
+    setOpen(false);
+
+    if (!isSupabaseConfigured || !supabase) {
+      router.push("/customer-login");
+      return;
+    }
+
+    const { data } = await supabase.auth.getSession();
+    const user = data.session?.user;
+    if (!user) {
+      router.push("/customer-login");
+      return;
+    }
+
+    const nextRole = sessionRole(user, pathname);
+    if (nextRole === "admin") router.push("/admin");
+    else if (nextRole === "driver") router.push(await driverAccountPath(user.id));
+    else router.push("/client/dashboard");
+  }
+
   return (
     <header className="top-nav" ref={navRef}>
       <Link href="/" className="logo" aria-label="Live map" onClick={goLiveMap}>
         <span>HopToDrop</span>
         <span>Albania</span>
       </Link>
-      <button className="menu-btn" aria-label="Open menu" onClick={() => setOpen((value) => !value)}>
-        {open ? <X size={24} /> : <Menu size={24} />}
-      </button>
+      {pathname === "/" ? (
+        <button className="menu-btn account-btn" aria-label={role ? "Open account" : "Log in"} onClick={openAccount}>
+          <UserRound size={23} />
+        </button>
+      ) : (
+        <button className="menu-btn" aria-label="Open menu" onClick={() => setOpen((value) => !value)}>
+          {open ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      )}
       {open && (
         <nav className="top-menu">
           {/* fix: hamburger becomes the main customer account menu when a rider is logged in. */}
@@ -94,7 +136,7 @@ export default function TopNav() {
           {role === "driver" && (
             <>
               <span className="menu-account">{email}</span>
-              <Link href="/driver/dashboard">Driver dashboard</Link>
+              <Link href="/driver">Driver portal</Link>
               <button type="button" onClick={logout}>Log out</button>
             </>
           )}
@@ -110,7 +152,7 @@ export default function TopNav() {
             <>
               <Link href="/">Booking</Link>
               <Link href="/customer-login">Customer Login</Link>
-              <Link href="/driver-login">Driver Login</Link>
+              <Link href="/driver">Driver Login</Link>
               <Link href="/admin">Admin</Link>
             </>
           )}
