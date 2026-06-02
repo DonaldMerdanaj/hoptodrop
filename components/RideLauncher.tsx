@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Clock, Square, UserRound } from "lucide-react";
-import PlaceInput, { type PlaceSelection } from "@/components/PlaceInput";
+import { useRouter } from "next/navigation";
+import type { PlaceSelection } from "@/components/PlaceInput";
+import { loadDraftPickupTime, loadDraftPlace } from "@/lib/tripDraft";
 
 const emptyPickup: PlaceSelection = { name: "", lat: 41.3275, lng: 19.8187 };
 const emptyDestination: PlaceSelection = { name: "", lat: 41.3194, lng: 19.8157 };
@@ -14,16 +16,28 @@ export default function RideLauncher({
   initialPickup: PlaceSelection | null;
   onTripReady: (pickup: PlaceSelection, destination: PlaceSelection) => void;
 }) {
+  const router = useRouter();
   const [pickup, setPickup] = useState<PlaceSelection>(initialPickup || emptyPickup);
   const [destination, setDestination] = useState<PlaceSelection>(emptyDestination);
+  const [pickupTime, setPickupTime] = useState("Pick up now");
 
   useEffect(() => {
-    if (initialPickup) setPickup(initialPickup);
+    const savedPickup = loadDraftPlace("pickup");
+    const savedDropoff = loadDraftPlace("dropoff");
+
+    if (savedPickup) setPickup(savedPickup);
+    else if (initialPickup) setPickup(initialPickup);
+    if (savedDropoff) setDestination(savedDropoff);
+    setPickupTime(loadDraftPickupTime());
   }, [initialPickup]);
 
-  function selectDestination(nextDestination: PlaceSelection) {
-    setDestination(nextDestination);
-    onTripReady(pickup.name ? pickup : emptyPickup, nextDestination);
+  function startTripSearch() {
+    if (!destination.name) {
+      router.push("/dropoff");
+      return;
+    }
+
+    onTripReady(pickup.name ? pickup : emptyPickup, destination);
   }
 
   return (
@@ -31,33 +45,29 @@ export default function RideLauncher({
       <h1>Find a trip</h1>
       <div className="uber-route-card launcher-search">
         <span className="uber-route-dot" aria-hidden="true" />
-        <PlaceInput
-          label="Pickup"
-          value={pickup}
-          onChange={setPickup}
-          placeholder="Pick-up location"
-        />
+        <button className="uber-location-button" type="button" onClick={() => router.push("/pickup")}>
+          <span>{pickup.name || "Pick-up location"}</span>
+        </button>
         <span className="uber-route-square" aria-hidden="true">
           <Square size={10} fill="currentColor" />
         </span>
-        <PlaceInput
-          label="Drop-off"
-          value={destination}
-          onChange={setDestination}
-          onPlaceSelected={selectDestination}
-          placeholder="Drop-off location"
-        />
+        <button className="uber-location-button muted" type="button" onClick={() => router.push("/dropoff")}>
+          <span>{destination.name || "Drop-off location"}</span>
+        </button>
       </div>
       <div className="uber-trip-chips">
-        <button type="button">
+        <button type="button" onClick={() => router.push("/pickuptime")}>
           <Clock size={18} fill="currentColor" />
-          Pick up now
+          {pickupTime}
         </button>
         <button type="button">
           <UserRound size={18} fill="currentColor" />
           For me
         </button>
       </div>
+      <button className="primary-btn launcher-submit" type="button" onClick={startTripSearch}>
+        Find taxis
+      </button>
     </section>
   );
 }

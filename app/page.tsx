@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import BottomNav from "@/components/BottomNav";
 import BookingForm from "@/components/BookingForm";
 import type { PlaceSelection } from "@/components/PlaceInput";
 import RideLauncher from "@/components/RideLauncher";
@@ -99,7 +98,6 @@ export default function Home() {
         initialDropoff={launcherDestination}
         onClose={() => setBookingOpen(false)}
       />
-      <BottomNav />
     </main>
   );
 }
