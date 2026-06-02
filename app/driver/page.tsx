@@ -4,19 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthForm from "@/components/AuthForm";
 import { ensureUserProfile, getCurrentUserProfile, roleDashboard } from "@/lib/authProfile";
+import { driverDestination } from "@/lib/driverRouting";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
-
-async function driverDestination(userId: string) {
-  if (!supabase) return "/driver/formaplication";
-
-  const { data } = await supabase
-    .from("driver_profiles")
-    .select("approval_status")
-    .eq("id", userId)
-    .maybeSingle();
-
-  return data?.approval_status === "approved" ? "/driver/dashboard" : "/driver/formaplication";
-}
 
 export default function DriverPage() {
   const router = useRouter();

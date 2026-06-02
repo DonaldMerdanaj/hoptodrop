@@ -69,7 +69,13 @@ function AuthCallbackContent() {
       }
 
       const { profile } = await getCurrentUserProfile();
-      if (profile && profile.role !== callbackMode && profile.role !== "admin") {
+      if (profile?.role === "admin") {
+        setMessage("Email confirmed. Redirecting...");
+        router.replace("/admin");
+        return;
+      }
+
+      if (profile && profile.role !== callbackMode) {
         setError(`This account is registered as ${profile.role}. Please use the ${profile.role} portal.`);
         return;
       }

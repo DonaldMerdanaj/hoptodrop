@@ -64,7 +64,14 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
     if (error) setMessage(authMessage(error.message));
     else {
       const { profile } = await getCurrentUserProfile();
-      if (profile && profile.role !== role && profile.role !== "admin") {
+      if (profile?.role === "admin") {
+        clearAccountMode();
+        setMessage("Signed in successfully.");
+        router.replace("/admin");
+        return;
+      }
+
+      if (profile && profile.role !== role) {
         await supabase.auth.signOut();
         clearAccountMode();
         setMessage(`This account is registered as ${profile.role}. Use the ${profile.role} portal or create a separate approved account.`);
@@ -77,7 +84,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
         await ensureCustomerProfile(data.user);
       }
 
-      // fix: booking is blocked for driver-mode sessions until the user logs in as a customer.
+      // fix: accountMode is only a UI hint; security uses supabase.auth.getUser plus profiles.role.
       setAccountMode(role);
       setMessage("Signed in successfully.");
       if (onAuthChange) await onAuthChange();
@@ -187,6 +194,11 @@ export default function AuthForm({ role, onAuthChange, redirectPath }: AuthFormP
   return (
     <form className="auth-entry-form" onSubmit={submitAuth}>
       <h1>What's your email?</h1>
+      {process.env.NODE_ENV !== "production" && (
+        <p className="auth-dev-warning">
+          To test driver and customer at the same time, use incognito or a different browser.
+        </p>
+      )}
       <input
         type="email"
         placeholder="Enter your email"

@@ -6,21 +6,10 @@ import { useEffect, useRef, useState } from "react";
 import { Menu, UserRound, X } from "lucide-react";
 import { clearAccountMode } from "@/lib/accountMode";
 import { getCurrentUserProfile } from "@/lib/authProfile";
+import { driverDestination } from "@/lib/driverRouting";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type SessionRole = "customer" | "driver" | "admin" | null;
-
-async function driverAccountPath(userId: string) {
-  if (!supabase) return "/driver";
-
-  const { data } = await supabase
-    .from("driver_profiles")
-    .select("approval_status")
-    .eq("id", userId)
-    .maybeSingle();
-
-  return data?.approval_status === "approved" ? "/driver/dashboard" : "/driver/formaplication";
-}
 
 export default function TopNav() {
   const router = useRouter();
@@ -88,7 +77,7 @@ export default function TopNav() {
 
     const nextRole = (profile?.role as SessionRole) || null;
     if (nextRole === "admin") router.push("/admin");
-    else if (nextRole === "driver") router.push(await driverAccountPath(user.id));
+    else if (nextRole === "driver") router.push(await driverDestination(user.id));
     else router.push("/client/dashboard");
   }
 

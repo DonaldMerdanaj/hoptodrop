@@ -17,6 +17,24 @@ export type CurrentUserProfile = {
   updated_at?: string;
 };
 
+let showedSharedSessionWarning = false;
+
+export function logSharedSessionWarning() {
+  if (process.env.NODE_ENV === "production" || showedSharedSessionWarning) return;
+  showedSharedSessionWarning = true;
+  console.warn("To test driver and customer at the same time, use incognito or a different browser.");
+}
+
+export function logAuthDebug(input: { userId?: string | null; email?: string | null; role?: string | null; route?: string }) {
+  if (process.env.NODE_ENV === "production") return;
+  console.log("[auth-debug]", {
+    userId: input.userId || null,
+    email: input.email || null,
+    profileRole: input.role || null,
+    route: input.route
+  });
+}
+
 function metadataName(user: User) {
   const metadata = user.user_metadata || {};
   return metadata.full_name || metadata.name || user.email?.split("@")[0] || "HopToDrop user";
@@ -66,6 +84,7 @@ export async function ensureUserProfile(user: User, requestedRole: Exclude<AppRo
 }
 
 export async function getCurrentUserProfile() {
+  logSharedSessionWarning();
   const user = await getCurrentUser();
   if (!user || !supabase) return { user: null, profile: null };
 
@@ -78,7 +97,7 @@ export async function getCurrentUserProfile() {
   if (error) throw error;
 
   const profile = data as CurrentUserProfile | null;
-  console.log("[auth]", {
+  logAuthDebug({
     route: typeof window !== "undefined" ? window.location.pathname : "",
     userId: user.id,
     email: user.email,
