@@ -31,34 +31,33 @@ button { cursor: pointer; }
 .top-menu a:hover, .top-menu button:hover { background: var(--surface-soft); }
 .menu-account { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); background: var(--surface-soft); font-size: 12px; }
 
-.map-wrap { position: absolute; inset: 0; z-index: 1; transition: bottom .2s ease; }
-.app-shell:has(.ride-launcher) .map-wrap { bottom: 248px; }
+.map-wrap { position: absolute; inset: 0; z-index: 1; }
 .google-map { width: 100%; height: 100%; }
 .map-empty-state { position: absolute; inset: 0; display: grid; place-content: center; gap: 8px; padding: 24px; text-align: center; color: var(--muted); background: #eef2f7; border: 0; }
 .map-empty-state strong { color: var(--ink); font-size: 19px; }
 .map-empty-state small { color: var(--accent); font-weight: 900; }
 .map-overlay { position: absolute; inset: 0; z-index: 2; pointer-events: none; background: linear-gradient(to bottom, rgba(248,250,252,.46) 0%, rgba(248,250,252,0) 22%, rgba(248,250,252,0) 68%, rgba(248,250,252,.78) 100%); }
 
-.ride-launcher { position: absolute; z-index: 18; left: 0; right: 0; bottom: 0; padding: 22px 18px calc(18px + env(safe-area-inset-bottom)); border: 0; border-radius: 22px 22px 0 0; color: var(--ink); background: var(--surface); box-shadow: 0 -18px 52px rgba(17,24,39,.13); }
-.uber-trip-launcher { display: grid; gap: 12px; }
-.uber-trip-launcher h1 { margin: 0; font-size: 28px; line-height: 1.1; letter-spacing: 0; font-weight: 900; }
-.uber-route-card { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px 9px; }
+.ride-launcher { position: fixed; z-index: 18; left: 50%; right: auto; bottom: 0; transform: translateX(-50%); width: min(100vw, 430px); padding: 18px 18px calc(14px + env(safe-area-inset-bottom)); border: 0; border-radius: 26px 26px 0 0; color: var(--ink); background: #fff; box-shadow: 0 -18px 46px rgba(15,23,42,.16); }
+.uber-trip-launcher { display: grid; gap: 11px; }
+.uber-trip-launcher h1 { margin: 0; font-size: 25px; line-height: 1.1; letter-spacing: 0; font-weight: 900; }
+.uber-route-card { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px 8px; }
 .uber-route-card .place-input { min-width: 0; }
 .uber-route-card .place-input > span { display: none; }
-.uber-route-card input { width: 100%; min-height: 52px; border: 0; outline: 0; border-radius: 10px; padding: 0 15px; color: #111; background: #f3f3f3; font-size: 20px; font-weight: 500; }
+.uber-route-card input { width: 100%; min-height: 52px; border: 0; outline: 0; border-radius: 14px; padding: 0 15px; color: #111; background: #f4f4f5; font-size: 18px; font-weight: 600; }
 .uber-route-card input::placeholder { color: #6b7280; opacity: 1; }
-.uber-route-card input:focus { box-shadow: inset 0 0 0 2px #111; background: #f7f7f7; }
+.uber-route-card input:focus { box-shadow: inset 0 0 0 2px #111; background: #fff; }
 .uber-route-dot, .uber-route-square { width: 28px; height: 52px; display: grid; place-items: center; color: #000; }
-.uber-route-dot:before { content: ""; width: 18px; height: 18px; border: 6px solid #000; border-radius: 999px; }
+.uber-route-dot:before { content: ""; width: 15px; height: 15px; border: 5px solid #000; border-radius: 999px; }
 .uber-route-square svg { color: #000; }
-.uber-location-button { min-width: 0; width: 100%; min-height: 52px; border: 0; border-radius: 10px; padding: 0 15px; color: #111; background: #f3f3f3; text-align: left; font-size: 20px; font-weight: 500; }
+.uber-location-button { min-width: 0; width: 100%; min-height: 52px; border: 0; border-radius: 14px; padding: 0 15px; color: #111; background: #f4f4f5; text-align: left; font-size: 18px; font-weight: 650; }
 .uber-location-button span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .uber-location-button.muted { color: #6b7280; }
-.uber-location-button:focus-visible { outline: 0; box-shadow: inset 0 0 0 2px #111; background: #f7f7f7; }
-.uber-trip-chips { display: flex; flex-wrap: wrap; gap: 10px; }
-.uber-trip-chips button { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; border: 0; border-radius: 999px; padding: 0 15px; color: #000; background: #f3f3f3; font-size: 16px; font-weight: 800; }
+.uber-location-button:focus-visible { outline: 0; box-shadow: inset 0 0 0 2px #111; background: #fff; }
+.uber-trip-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.uber-trip-chips button { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; border: 0; border-radius: 999px; padding: 0 13px; color: #000; background: #f4f4f5; font-size: 14px; font-weight: 850; }
 .uber-trip-chips svg { color: #000; }
-.launcher-submit { min-height: 50px; border-radius: 12px; font-size: 17px; }
+.launcher-submit { min-height: 46px; border-radius: 14px; font-size: 16px; }
 .where-to-pill { display: grid; grid-template-columns: 34px 1fr 30px; align-items: center; gap: 10px; min-height: 58px; width: 100%; padding: 0 16px; border: 1px solid var(--line-strong); border-radius: 18px; color: var(--ink); background: var(--surface); text-align: left; transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease; }
 .where-to-pill:hover { transform: translateY(-1px); border-color: #9ca3af; box-shadow: 0 12px 24px rgba(17,24,39,.08); }
 .where-to-pill svg { color: var(--ink); }
