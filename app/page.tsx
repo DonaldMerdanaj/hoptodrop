@@ -84,7 +84,9 @@ export default function Home() {
       )}
       {!bookingOpen && locationStatus !== "outside" && (
         <RideLauncher
-          onDestinationSelected={(destination) => {
+          initialPickup={currentPickup}
+          onTripReady={(pickup, destination) => {
+            setMapPickup(pickup);
             setLauncherDestination(destination);
             setBookingOpen(true);
           }}
