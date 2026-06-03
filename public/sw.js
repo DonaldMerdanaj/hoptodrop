@@ -1,5 +1,5 @@
-const CACHE_NAME = "hoptodrop-v1";
-const APP_SHELL = ["/", "/offline.html", "/manifest.webmanifest", "/icon.svg", "/maskable-icon.svg"];
+const CACHE_NAME = "hoptodrop-v2";
+const APP_SHELL = ["/", "/driver", "/login?role=driver", "/offline.html", "/manifest.webmanifest", "/icon.svg", "/maskable-icon.svg", "/driver-icon.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

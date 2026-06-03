@@ -77,3 +77,54 @@ export type CustomerProfile = {
   created_at: string;
   updated_at: string;
 };
+
+export type DriverProfile = {
+  id: string;
+  email: string;
+  full_name: string;
+  phone: string;
+  city: string;
+  national_id?: string | null;
+  license_number?: string | null;
+  license_expires_at?: string | null;
+  taxi_license_number?: string | null;
+  vehicle_make: string;
+  vehicle_model: string;
+  vehicle_year?: number | null;
+  license_plate: string;
+  vehicle_color: string;
+  seats?: number | null;
+  iban?: string | null;
+  driver_license_url: string | null;
+  vehicle_registration_url: string | null;
+  insurance_url: string | null;
+  profile_photo_url: string | null;
+  approval_status: "draft" | "submitted" | "approved" | "rejected";
+  status: "online" | "offline" | "busy";
+  submitted_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type TripHistory = {
+  id: string;
+  booking_id: string;
+  customer_id: string;
+  driver_id: string;
+  pickup: string;
+  dropoff: string;
+  fare: number;
+  status: "completed" | "cancelled";
+  completed_at: string | null;
+  created_at: string;
+};
+
+export type Earning = {
+  id: string;
+  driver_id: string;
+  booking_id: string | null;
+  amount: number;
+  currency: string;
+  earned_on: string;
+  created_at: string;
+};

@@ -29,12 +29,17 @@ export default function DriverApplicationPage() {
 
       const { user, profile: appProfile, allowed } = await requireRole(["driver", "admin"]);
       if (!user) {
-        router.replace("/driver");
+        router.replace("/login?role=driver");
         return;
       }
 
       if (!allowed) {
         router.replace(roleDashboard(appProfile?.role));
+        return;
+      }
+
+      if (appProfile?.role === "admin") {
+        router.replace("/admin");
         return;
       }
 
@@ -45,7 +50,7 @@ export default function DriverApplicationPage() {
         .maybeSingle();
 
       if (profileData?.approval_status === "approved") {
-        router.replace("/driver/dashboard");
+        router.replace("/driver");
         return;
       }
 
@@ -60,7 +65,7 @@ export default function DriverApplicationPage() {
     if (!supabase) return;
     await supabase.auth.signOut();
     clearAccountMode();
-    router.replace("/driver");
+    router.replace("/login?role=driver");
   }
 
   return (

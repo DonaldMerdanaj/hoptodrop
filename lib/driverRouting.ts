@@ -11,5 +11,5 @@ export async function driverDestination(userId: string) {
     .eq("id", userId)
     .maybeSingle();
 
-  return data?.approval_status === "approved" ? "/driver/dashboard" : "/driver/formaplication";
+  return data?.approval_status === "approved" ? "/driver" : "/driver/formaplication";
 }

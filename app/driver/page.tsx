@@ -2,88 +2,91 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import AuthForm from "@/components/AuthForm";
+import DriverApp from "@/components/DriverApp";
 import { ensureUserProfile, getCurrentUserProfile, roleDashboard } from "@/lib/authProfile";
-import { driverDestination } from "@/lib/driverRouting";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+
+type DriverProfile = {
+  id: string;
+  email: string;
+  full_name: string;
+  phone: string;
+  city: string;
+  approval_status: "draft" | "submitted" | "approved" | "rejected";
+  vehicle_make: string;
+  vehicle_model: string;
+  license_plate: string;
+  vehicle_color: string;
+  profile_photo_url: string | null;
+  driver_license_url: string | null;
+  vehicle_registration_url: string | null;
+  insurance_url: string | null;
+  status?: "online" | "offline" | "busy";
+};
 
 export default function DriverPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<DriverProfile | null>(null);
+  const [message, setMessage] = useState("Checking driver access...");
 
   useEffect(() => {
-    async function routeDriverSession() {
+    async function loadDriverApp() {
       if (!isSupabaseConfigured || !supabase) {
-        setLoading(false);
+        setMessage("Supabase is not configured. Add the Supabase URL and anon key.");
         return;
       }
 
-      const { user, profile } = await getCurrentUserProfile();
+      const { user, profile: appProfile } = await getCurrentUserProfile();
       if (!user) {
-        setLoading(false);
+        router.replace("/login?role=driver");
         return;
       }
 
-      if (!profile) {
+      if (!appProfile) {
         await ensureUserProfile(user, "driver");
-        router.replace(await driverDestination(user.id));
+        router.replace("/driver/formaplication");
         return;
       }
 
-      if (profile.role !== "driver" && profile.role !== "admin") {
-        router.replace(roleDashboard(profile.role));
-        return;
-      }
-
-      if (profile.role === "admin") {
+      if (appProfile.role === "admin") {
         router.replace("/admin");
         return;
       }
 
-      router.replace(await driverDestination(user.id));
+      if (appProfile.role !== "driver") {
+        router.replace(roleDashboard(appProfile.role));
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("driver_profiles")
+        .select("id,email,full_name,phone,city,approval_status,vehicle_make,vehicle_model,license_plate,vehicle_color,profile_photo_url,driver_license_url,vehicle_registration_url,insurance_url,status")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
+
+      if (!data || data.approval_status !== "approved") {
+        router.replace("/driver/formaplication");
+        return;
+      }
+
+      setProfile(data as DriverProfile);
     }
 
-    routeDriverSession();
+    loadDriverApp();
   }, [router]);
 
+  if (profile) return <DriverApp initialProfile={profile} />;
+
   return (
-    <main className="auth-page auth-entry-page driver-auth-page">
-      <header className="driver-auth-hero">
-        <div>
-          <span>HopToDrop</span>
-          <strong>Driver portal</strong>
-        </div>
-        <p>Sign in to manage applications, go online, receive trips, and complete rides.</p>
-      </header>
-      <section className="auth-entry-card driver-auth-card">
-        {loading && <p className="status-message">Checking driver account...</p>}
-        {!loading && (
-          <AuthForm
-            role="driver"
-            redirectPath="/driver"
-            title="Driver sign in"
-            note="Driver accounts are reviewed before going online. Approved drivers open the live dashboard automatically."
-            onAuthChange={async () => {
-              if (!supabase) return;
-              const { user, profile } = await getCurrentUserProfile();
-              if (!user) return;
-              if (!profile) {
-                await ensureUserProfile(user, "driver");
-                router.replace(await driverDestination(user.id));
-                return;
-              }
-              if (profile.role !== "driver" && profile.role !== "admin") {
-                router.replace(roleDashboard(profile.role));
-                return;
-              }
-              if (profile.role === "admin") {
-                router.replace("/admin");
-                return;
-              }
-              router.replace(await driverDestination(user.id));
-            }}
-          />
-        )}
+    <main className="driver-app-loading">
+      <section>
+        <span>HopToDrop Driver</span>
+        <strong>{message}</strong>
       </section>
     </main>
   );
