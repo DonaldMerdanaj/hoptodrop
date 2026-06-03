@@ -97,6 +97,14 @@ export default function TopNav() {
     }
 
     const nextRole = (profile?.role as SessionRole) || null;
+    const isDriverDomain = window.location.hostname === "driver.hoptodrop.com";
+
+    if (!isDriverDomain && nextRole !== "customer") {
+      // fix: hoptodrop.com is rider-only, so the account icon never opens driver/admin portals from the main domain.
+      router.push("/rider-login");
+      return;
+    }
+
     if (nextRole === "admin") router.push("/admin");
     else if (nextRole === "driver") router.push(await driverDestination(user.id));
     else router.push("/rider/dashboard");
