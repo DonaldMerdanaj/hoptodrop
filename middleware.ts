@@ -60,11 +60,11 @@ function isRiderProtectedPath(pathname: string) {
   return pathname.startsWith("/rider/dashboard") || pathname.startsWith("/client") || pathname === "/dashboard";
 }
 
-async function getProfileRole(request: NextRequest, response: NextResponse): Promise<AppRole | null> {
+async function getSessionRole(request: NextRequest, response: NextResponse) {
   // fix: middleware role checks use Supabase auth cookies plus profiles.role, never browser localStorage.
   const supabase = createMiddlewareClient({ req: request, res: response });
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) return null;
+  if (!session?.user) return { session: null, role: null };
 
   const { data } = await supabase
     .from("profiles")
@@ -73,21 +73,26 @@ async function getProfileRole(request: NextRequest, response: NextResponse): Pro
     .maybeSingle();
 
   const role = data?.role;
-  return role === "customer" || role === "driver" || role === "admin" ? role : null;
+  return {
+    session,
+    role: role === "customer" || role === "driver" || role === "admin" ? role : null
+  };
 }
 
 async function enforceRole(request: NextRequest, response: NextResponse, internalPathname: string) {
   const hostname = request.nextUrl.hostname.toLowerCase();
-  const role = await getProfileRole(request, response);
-  if (!role) return response;
+  const { session, role } = await getSessionRole(request, response);
 
-  if (hostname === driverHost && internalPathname.startsWith("/driver") && internalPathname !== "/driver/login") {
+  if (hostname === driverHost && internalPathname.startsWith("/driver")) {
+    if (internalPathname === "/driver/login") return response;
+    if (!session?.user) return NextResponse.redirect(driverUrl(request, "/login"));
     if (role !== "driver" && role !== "admin") {
       return NextResponse.redirect(mainUrl(request, "/rider/login"));
     }
   }
 
   if (productionHosts.has(hostname) && isRiderProtectedPath(request.nextUrl.pathname)) {
+    if (!session?.user) return NextResponse.redirect(mainUrl(request, "/rider/login"));
     if (role === "driver") return NextResponse.redirect(driverUrl(request, "/"));
     if (role === "admin") {
       const next = request.nextUrl.clone();
