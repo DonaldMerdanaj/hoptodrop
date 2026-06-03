@@ -29,6 +29,7 @@ function authMessage(errorMessage: string) {
 
 function authRedirectFor(role: "customer" | "driver", redirectPath?: string) {
   if (role === "driver" && typeof window !== "undefined") {
+    if (redirectPath?.startsWith("https://driver.hoptodrop.com")) return redirectPath;
     const hostname = window.location.hostname;
     if (hostname === "driver.hoptodrop.com") return "/";
     if (hostname === "hoptodrop.com" || hostname === "www.hoptodrop.com" || hostname === "hoptodrop.vercel.app") {

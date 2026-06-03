@@ -12,7 +12,7 @@ export default function DriverLoginPage() {
       <section className="auth-entry-card">
         <AuthForm
           role="driver"
-          redirectPath="/"
+          redirectPath="https://driver.hoptodrop.com/"
           title="Driver Portal"
           note="Log in to manage active transfers, update your vehicle location, and check earnings."
         />

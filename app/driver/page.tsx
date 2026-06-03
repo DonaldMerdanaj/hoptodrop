@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import DriverApp from "@/components/driver/DriverApp";
-import { getCurrentUserProfile, roleDashboard } from "@/lib/authProfile";
+import { getCurrentUserProfile } from "@/lib/authProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type DriverProfile = {
@@ -53,7 +53,8 @@ export default function DriverPage() {
       }
 
       if (appProfile.role !== "driver") {
-        router.replace(roleDashboard(appProfile.role));
+        // fix: driver-domain app guard never routes wrong-role sessions into the rider/main app.
+        router.replace("/driver/login");
         return;
       }
 
