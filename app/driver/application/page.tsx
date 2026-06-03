@@ -86,7 +86,20 @@ export default function DriverApplicationPage() {
 
       {loading && <section className="auth-card"><p className="status-message">Checking driver application...</p></section>}
       {message && <section className="auth-card"><p className="status-message">{message}</p></section>}
-      {!loading && (
+      {!loading && profile?.approval_status === "submitted" && (
+        <section className="auth-card driver-dashboard-card">
+          {/* fix: submitted drivers should see a processing state instead of the editable application form. */}
+          <div className="driver-form-intro">
+            <FileText size={19} />
+            <div>
+              <strong>Application still processing</strong>
+              <span>Your driver application has been submitted and is waiting for admin approval.</span>
+            </div>
+          </div>
+          <p className="status-message">We will open your driver dashboard automatically after approval.</p>
+        </section>
+      )}
+      {!loading && profile?.approval_status !== "submitted" && (
         <section className="auth-card driver-dashboard-card">
           <div className="driver-form-intro">
             <FileText size={19} />
