@@ -1,9 +1,11 @@
+import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
 import { NextRequest, NextResponse } from "next/server";
 
 const driverHost = "driver.hoptodrop.com";
 const mainHost = "hoptodrop.com";
 const mainWwwHost = "www.hoptodrop.com";
 const productionHosts = new Set([mainHost, mainWwwHost, "hoptodrop.vercel.app"]);
+type AppRole = "customer" | "driver" | "admin";
 
 function isAsset(pathname: string) {
   return (
@@ -33,35 +35,80 @@ function mainUrl(request: NextRequest, pathname = request.nextUrl.pathname) {
   return next;
 }
 
-export function middleware(request: NextRequest) {
+function cleanDriverPath(pathname: string) {
+  if (pathname === "/driver") return "/";
+  if (pathname === "/driver/login") return "/login";
+  if (pathname === "/driver/application" || pathname === "/driver/formaplication") return "/application";
+  if (pathname === "/driver/dashboard") return "/dashboard";
+  if (pathname.startsWith("/driver/")) return pathname.replace(/^\/driver/, "") || "/";
+  return pathname;
+}
+
+function internalDriverPath(pathname: string) {
+  if (pathname === "/" || pathname === "/dashboard") return "/driver";
+  if (pathname === "/login") return "/driver/login";
+  if (pathname === "/application") return "/driver/application";
+  return pathname;
+}
+
+function isDriverCleanPath(pathname: string) {
+  return pathname === "/" || pathname === "/dashboard" || pathname === "/login" || pathname === "/application";
+}
+
+function isRiderProtectedPath(pathname: string) {
+  return pathname.startsWith("/rider/dashboard") || pathname.startsWith("/client") || pathname === "/dashboard";
+}
+
+async function getProfileRole(request: NextRequest, response: NextResponse): Promise<AppRole | null> {
+  // fix: middleware role checks use Supabase auth cookies plus profiles.role, never browser localStorage.
+  const supabase = createMiddlewareClient({ req: request, res: response });
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) return null;
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", session.user.id)
+    .maybeSingle();
+
+  const role = data?.role;
+  return role === "customer" || role === "driver" || role === "admin" ? role : null;
+}
+
+async function enforceRole(request: NextRequest, response: NextResponse, internalPathname: string) {
+  const hostname = request.nextUrl.hostname.toLowerCase();
+  const role = await getProfileRole(request, response);
+  if (!role) return response;
+
+  if (hostname === driverHost && internalPathname.startsWith("/driver") && internalPathname !== "/driver/login") {
+    if (role !== "driver" && role !== "admin") {
+      return NextResponse.redirect(mainUrl(request, "/rider/login"));
+    }
+  }
+
+  if (productionHosts.has(hostname) && isRiderProtectedPath(request.nextUrl.pathname)) {
+    if (role === "driver") return NextResponse.redirect(driverUrl(request, "/"));
+    if (role === "admin") {
+      const next = request.nextUrl.clone();
+      next.pathname = "/admin";
+      return NextResponse.redirect(next);
+    }
+  }
+
+  return response;
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
   const hostname = request.nextUrl.hostname.toLowerCase();
 
   if (isAsset(pathname) || isLocalHost(hostname)) return NextResponse.next();
 
+  // Pass 1: Domain isolation. Driver domain keeps clean URLs while targeting app/driver internally.
   if (hostname === driverHost) {
-    if (pathname === "/") {
-      const rewrite = request.nextUrl.clone();
-      rewrite.pathname = "/driver";
-      return NextResponse.rewrite(rewrite);
-    }
-
-    if (pathname === "/login") {
-      const rewrite = request.nextUrl.clone();
-      rewrite.pathname = "/driver/login";
-      rewrite.searchParams.delete("role");
-      return NextResponse.rewrite(rewrite);
-    }
-
-    if (pathname === "/driver") {
+    if (pathname.startsWith("/driver")) {
       const redirect = request.nextUrl.clone();
-      redirect.pathname = "/";
-      return NextResponse.redirect(redirect);
-    }
-
-    if (pathname === "/driver/login") {
-      const redirect = request.nextUrl.clone();
-      redirect.pathname = "/login";
+      redirect.pathname = cleanDriverPath(pathname);
       return NextResponse.redirect(redirect);
     }
 
@@ -69,17 +116,26 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(mainUrl(request, "/rider/login"));
     }
 
-    return NextResponse.next();
+    if (isDriverCleanPath(pathname)) {
+      const rewrite = request.nextUrl.clone();
+      rewrite.pathname = internalDriverPath(pathname);
+      rewrite.searchParams.delete("role");
+      const response = NextResponse.rewrite(rewrite);
+      // Pass 2: role enforcement when Supabase middleware cookies can identify the user.
+      return enforceRole(request, response, rewrite.pathname);
+    }
+
+    return enforceRole(request, NextResponse.next(), pathname);
   }
 
   if (productionHosts.has(hostname)) {
-    if (pathname === "/driver/login") {
-      return NextResponse.redirect(driverUrl(request, "/login"));
+    if (pathname.startsWith("/driver")) {
+      return NextResponse.redirect(driverUrl(request, cleanDriverPath(pathname)));
     }
 
-    if (pathname.startsWith("/driver") || (pathname === "/login" && searchParams.get("role") === "driver")) {
-      return NextResponse.redirect(driverUrl(request, pathname === "/login" ? "/login" : pathname));
-    }
+    if (pathname === "/login" && searchParams.get("role") === "driver") return NextResponse.redirect(driverUrl(request, "/login"));
+
+    return enforceRole(request, NextResponse.next(), pathname);
   }
 
   return NextResponse.next();
