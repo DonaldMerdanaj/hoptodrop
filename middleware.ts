@@ -9,13 +9,7 @@ function isAsset(pathname: string) {
   return (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
-    pathname === "/favicon.ico" ||
-    pathname === "/manifest.webmanifest" ||
-    pathname === "/sw.js" ||
-    pathname === "/icon.svg" ||
-    pathname === "/maskable-icon.svg" ||
-    pathname === "/driver-icon.svg" ||
-    pathname === "/offline.html"
+    /\.(ico|png|jpg|jpeg|svg|webmanifest|js|html)$/i.test(pathname)
   );
 }
 
@@ -72,7 +66,7 @@ export function middleware(request: NextRequest) {
     }
 
     if (pathname.startsWith("/customer-login") || pathname.startsWith("/rider-login") || pathname.startsWith("/client") || pathname.startsWith("/rider")) {
-      return NextResponse.redirect(mainUrl(request));
+      return NextResponse.redirect(mainUrl(request, "/rider-login"));
     }
 
     return NextResponse.next();
