@@ -26,8 +26,12 @@ function AuthCallbackContent() {
 
       const code = searchParams.get("code");
       // fix: callback role must come from the OAuth/email URL, never stale localStorage accountMode.
-      const driverDefaultNext = window.location.hostname === "driver.hoptodrop.com" ? "/" : "/driver";
-      const next = searchParams.get("next") || (callbackMode === "driver" ? driverDefaultNext : "/rider/dashboard");
+      const driverDefaultNext = window.location.hostname === "driver.hoptodrop.com" ? "/" : "https://driver.hoptodrop.com/";
+      let next = searchParams.get("next") || (callbackMode === "driver" ? driverDefaultNext : "/rider/dashboard");
+      if (callbackMode === "driver" && next === "/" && window.location.hostname !== "driver.hoptodrop.com") {
+        // fix: driver OAuth/email callbacks opened on the rider domain must not fall back to the rider homepage.
+        next = "https://driver.hoptodrop.com/";
+      }
       const oauthError = searchParams.get("error_description") || searchParams.get("error");
 
       if (oauthError) {
@@ -93,6 +97,10 @@ function AuthCallbackContent() {
       }
 
       setMessage("Email confirmed. Redirecting...");
+      if (/^https?:\/\//.test(next)) {
+        window.location.assign(next);
+        return;
+      }
       router.replace(next);
     }
 

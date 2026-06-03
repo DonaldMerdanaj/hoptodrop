@@ -28,11 +28,25 @@ function authMessage(errorMessage: string) {
 }
 
 function authRedirectFor(role: "customer" | "driver", redirectPath?: string) {
-  if (role === "driver" && typeof window !== "undefined" && window.location.hostname === "driver.hoptodrop.com") {
-    return "/";
+  if (role === "driver" && typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    if (hostname === "driver.hoptodrop.com") return "/";
+    if (hostname === "hoptodrop.com" || hostname === "www.hoptodrop.com" || hostname === "hoptodrop.vercel.app") {
+      // fix: driver auth must always finish in the driver app, even if the login page was opened from the rider domain.
+      return "https://driver.hoptodrop.com/";
+    }
   }
 
   return redirectPath || (role === "driver" ? "/driver" : "/rider/dashboard");
+}
+
+function navigateAfterAuth(router: ReturnType<typeof useRouter>, destination: string) {
+  if (/^https?:\/\//.test(destination)) {
+    window.location.assign(destination);
+    return;
+  }
+
+  router.replace(destination);
 }
 
 function confirmationRedirectUrl(role: "customer" | "driver", redirectPath?: string) {
@@ -96,7 +110,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath, title, note
       setAccountMode(role);
       setMessage("Signed in successfully.");
       if (onAuthChange) await onAuthChange();
-      else router.replace(authRedirectFor(role, redirectPath));
+      else navigateAfterAuth(router, authRedirectFor(role, redirectPath));
     }
   }
 
