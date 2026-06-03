@@ -87,8 +87,8 @@ function AuthCallbackContent() {
       if (!profile) await ensureUserProfile(userData.user, callbackMode as "customer" | "driver");
       // fix: OAuth/email callback records whether the user entered customer or driver mode.
       setAccountMode(callbackMode as AccountMode);
-      if (next.startsWith("/rider") || next.startsWith("/client")) {
-        // fix: Google/email callback creates the persistent customer profile before opening dashboard.
+      if (callbackMode === "customer") {
+        // fix: rider profile creation depends on the auth mode, not a redirect URL that may cross domains.
         await ensureRiderProfile(userData.user);
       }
 
