@@ -34,13 +34,15 @@ export default function Home() {
       }
 
       const { user, profile } = await getCurrentUserProfile();
+      const isDriverDomain = window.location.hostname === "driver.hoptodrop.com";
 
-      if (user && profile?.role === "driver") {
+      if (isDriverDomain && user && profile?.role === "driver") {
+        // fix: only the driver subdomain should auto-open the driver portal; hoptodrop.com must stay rider-facing.
         router.replace(await driverDestination(user.id));
         return;
       }
 
-      if (user && profile?.role === "admin") {
+      if (isDriverDomain && user && profile?.role === "admin") {
         router.replace("/admin");
         return;
       }

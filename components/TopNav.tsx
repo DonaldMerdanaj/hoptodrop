@@ -59,11 +59,12 @@ export default function TopNav() {
     event.preventDefault();
     setOpen(false);
     const { user, profile } = await getCurrentUserProfile();
-    if (user && profile?.role === "driver") {
+    if (window.location.hostname === "driver.hoptodrop.com" && user && profile?.role === "driver") {
+      // fix: driver sessions on hoptodrop.com can still open the rider map; only driver.hoptodrop.com routes to driver tools.
       router.push(await driverDestination(user.id));
       return;
     }
-    if (user && profile?.role === "admin") {
+    if (window.location.hostname === "driver.hoptodrop.com" && user && profile?.role === "admin") {
       router.push("/admin");
       return;
     }
