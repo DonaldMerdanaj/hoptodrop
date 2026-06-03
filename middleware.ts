@@ -37,6 +37,7 @@ function mainUrl(request: NextRequest, pathname = request.nextUrl.pathname) {
 
 function cleanDriverPath(pathname: string) {
   if (pathname === "/driver") return "/";
+  if (pathname === "/driver-login") return "/login";
   if (pathname === "/driver/login") return "/login";
   if (pathname === "/driver/application" || pathname === "/driver/formaplication") return "/application";
   if (pathname === "/driver/dashboard") return "/dashboard";
