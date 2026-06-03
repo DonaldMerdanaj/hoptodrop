@@ -85,7 +85,10 @@ async function enforceRole(request: NextRequest, response: NextResponse, interna
 
   if (hostname === driverHost && internalPathname.startsWith("/driver")) {
     if (internalPathname === "/driver/login") return response;
-    if (!session?.user) return NextResponse.redirect(driverUrl(request, "/login"));
+    if (!session?.user) {
+      // fix: Supabase browser sessions are client-side here; let the driver app load and route to dashboard/application.
+      return response;
+    }
     if (role !== "driver" && role !== "admin") {
       // fix: driver.hoptodrop.com never redirects to the rider/main domain; wrong sessions stay in driver login.
       return NextResponse.redirect(driverUrl(request, "/login"));

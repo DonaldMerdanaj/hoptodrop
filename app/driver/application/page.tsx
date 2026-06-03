@@ -6,7 +6,7 @@ import { FileText, LogOut } from "lucide-react";
 import DriverRegistrationForm from "@/components/driver/DriverRegistrationForm";
 import TopNav from "@/components/shared/TopNav";
 import { clearAccountMode } from "@/lib/accountMode";
-import { requireRole, roleDashboard } from "@/lib/authProfile";
+import { requireRole } from "@/lib/authProfile";
 import { driverDestination } from "@/lib/driverRouting";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -35,7 +35,8 @@ export default function DriverApplicationPage() {
       }
 
       if (!allowed) {
-        router.replace(roleDashboard(appProfile?.role));
+        // fix: driver application never routes wrong-role sessions into the rider/main app.
+        router.replace("/driver/login");
         return;
       }
 
