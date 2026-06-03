@@ -8,6 +8,7 @@ import {
   CarFront,
   CheckCircle2,
   Home,
+  LocateFixed,
   LogOut,
   MapPin,
   Navigation,
@@ -49,6 +50,8 @@ type DriverLocation = {
   status: DriverStatus;
 };
 
+type LocationPermission = "unknown" | "prompt" | "granted" | "denied" | "unsupported";
+
 const tirana = { lat: 41.3275, lng: 19.8187 };
 
 function mapsDirectionsUrl(booking: Booking, target: "pickup" | "dropoff") {
@@ -84,7 +87,9 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [countdown, setCountdown] = useState(15);
+  const [locationPermission, setLocationPermission] = useState<LocationPermission>("unknown");
   const locationTimerRef = useRef<number | null>(null);
+  const activeTripRef = useRef<Booking | null>(null);
 
   const status = profile.status || location?.status || "offline";
 
@@ -127,6 +132,34 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
   useEffect(() => {
     loadDriverData();
   }, [loadDriverData]);
+
+  useEffect(() => {
+    activeTripRef.current = activeTrip;
+  }, [activeTrip]);
+
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationPermission("unsupported");
+      return;
+    }
+
+    if (!navigator.permissions?.query) {
+      setLocationPermission("prompt");
+      return;
+    }
+
+    let mounted = true;
+    navigator.permissions.query({ name: "geolocation" as PermissionName }).then((permission) => {
+      if (!mounted) return;
+      setLocationPermission(permission.state as LocationPermission);
+      permission.onchange = () => setLocationPermission(permission.state as LocationPermission);
+      if (permission.state === "granted") saveLocation("offline", false);
+    }).catch(() => setLocationPermission("prompt"));
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
@@ -185,13 +218,29 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
     };
   }, []);
 
-  async function saveLocation(nextStatus = status) {
-    if (!supabase || !navigator.geolocation) return;
+  function readCurrentPosition() {
+    return new Promise<GeolocationPosition>((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Location is not supported on this device."));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        maximumAge: 2500,
+        timeout: 12000
+      });
+    });
+  }
+
+  async function saveLocation(nextStatus = status, showErrors = true) {
+    if (!supabase || !navigator.geolocation) return false;
     const client = supabase;
     const { user } = await getCurrentUserProfile();
-    if (!user) return;
+    if (!user) return false;
 
-    navigator.geolocation.getCurrentPosition(async (position) => {
+    try {
+      const position = await readCurrentPosition();
       const nextLocation = {
         lat: position.coords.latitude,
         lng: position.coords.longitude,
@@ -214,24 +263,63 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
         updated_at: new Date().toISOString()
       }).eq("id", user.id);
 
-      if (activeTrip) {
+      const currentTrip = activeTripRef.current;
+      if (currentTrip) {
         await client.from("booking_route_points").insert({
-          booking_id: activeTrip.id,
+          booking_id: currentTrip.id,
           driver_id: user.id,
           lat: nextLocation.lat,
           lng: nextLocation.lng,
-          phase: activeTrip.status,
+          phase: currentTrip.status,
           recorded_at: new Date().toISOString()
         });
       }
-    });
+
+      setLocationPermission("granted");
+      setMessage("");
+      return true;
+    } catch (error) {
+      setLocationPermission("denied");
+      if (showErrors) {
+        setMessage("Location is required to go online. Allow location access in your browser settings, then try again.");
+      }
+      return false;
+    }
+  }
+
+  async function updateStoredStatus(nextStatus: DriverStatus) {
+    if (!supabase) return;
+    const { user } = await getCurrentUserProfile();
+    if (!user) return;
+
+    await supabase.from("driver_profiles").update({
+      status: nextStatus,
+      updated_at: new Date().toISOString()
+    }).eq("id", user.id);
+
+    await supabase.from("driver_locations").update({
+      status: nextStatus,
+      updated_at: new Date().toISOString()
+    }).eq("id", user.id);
   }
 
   async function setDriverStatus(nextStatus: DriverStatus) {
-    setProfile((current) => ({ ...current, status: nextStatus }));
-    await saveLocation(nextStatus);
-
     if (locationTimerRef.current !== null) window.clearInterval(locationTimerRef.current);
+
+    if (nextStatus === "offline") {
+      setProfile((current) => ({ ...current, status: "offline" }));
+      await updateStoredStatus("offline");
+      setMessage("You are offline. Turn Online on when you are ready for trips.");
+      return;
+    }
+
+    const locationSaved = await saveLocation(nextStatus, true);
+    if (!locationSaved) {
+      setProfile((current) => ({ ...current, status: "offline" }));
+      return;
+    }
+
+    setProfile((current) => ({ ...current, status: nextStatus }));
     if (nextStatus === "online" || nextStatus === "busy") {
       locationTimerRef.current = window.setInterval(() => saveLocation(nextStatus), 5000);
     }
@@ -327,6 +415,9 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
             <StatusBadge status={status} />
           </div>
           <div className="driver-glass-bottom">
+            {locationPermission !== "granted" && (
+              <LocationAccessCard permission={locationPermission} onRequest={() => saveLocation("offline", true)} />
+            )}
             <div className="driver-status-switch">
               {(["offline", "online", "busy"] as DriverStatus[]).map((item) => (
                 <button className={status === item ? "active" : ""} key={item} onClick={() => setDriverStatus(item)}>
@@ -469,6 +560,40 @@ function DriverGoogleMap({ location }: { location: DriverLocation | null }) {
   }, [location]);
 
   return <div className="driver-google-map" ref={mapNodeRef} />;
+}
+
+function LocationAccessCard({
+  permission,
+  onRequest
+}: {
+  permission: LocationPermission;
+  onRequest: () => void;
+}) {
+  const denied = permission === "denied";
+  const unsupported = permission === "unsupported";
+
+  return (
+    <article className={`driver-location-card ${denied || unsupported ? "warning" : ""}`}>
+      <div className="driver-location-icon">
+        <LocateFixed size={18} />
+      </div>
+      <div>
+        <strong>{unsupported ? "Location unavailable" : denied ? "Location blocked" : "Allow driver location"}</strong>
+        <p>
+          {unsupported
+            ? "This device does not support browser location."
+            : denied
+              ? "Open browser settings and allow location for HopToDrop before going online."
+              : "HopToDrop needs your live location while you are online or completing a ride."}
+        </p>
+      </div>
+      {!unsupported && (
+        <button className="secondary-btn" type="button" onClick={onRequest}>
+          Allow
+        </button>
+      )}
+    </article>
+  );
 }
 
 function ActiveTripCard({ trip, onUpdate }: { trip: Booking; onUpdate: (status: "arrived" | "started" | "completed") => void }) {
