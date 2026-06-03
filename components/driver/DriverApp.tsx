@@ -329,7 +329,7 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
     if (!supabase) return;
     await supabase.auth.signOut();
     clearAccountMode();
-    router.replace("/login?role=driver");
+    router.replace("/driver/login");
   }
 
   async function acceptIncoming() {
@@ -491,7 +491,7 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
             <ProfileRow label="Registration" value={profile.vehicle_registration_url ? "Uploaded" : "Missing"} />
             <ProfileRow label="Insurance" value={profile.insurance_url ? "Uploaded" : "Missing"} />
           </div>
-          <a className="primary-btn" href="/driver/formaplication">Edit profile</a>
+          <a className="primary-btn" href="/driver/application">Edit profile</a>
         </section>
       )}
 

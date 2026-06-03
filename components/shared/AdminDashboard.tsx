@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import TopNav from "@/components/TopNav";
+import TopNav from "@/components/shared/TopNav";
 import { requireRole } from "@/lib/authProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type { Booking, BookingStatus } from "@/lib/types";

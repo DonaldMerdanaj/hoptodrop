@@ -15,7 +15,7 @@ function AuthCallbackContent() {
   const [error, setError] = useState("");
   const callbackMode = searchParams.get("mode") === "driver" ? "driver" : "customer";
   const authMethod = searchParams.get("method") === "google" ? "Google login" : "Email confirmation";
-  const errorBackHref = callbackMode === "driver" ? "/login?role=driver" : "/rider-login";
+  const errorBackHref = callbackMode === "driver" ? "/driver/login" : "/rider/login";
 
   useEffect(() => {
     async function finishAuth() {

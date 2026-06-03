@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Car, CheckCircle2, Clock3, LocateFixed, MapPin, Navigation, Search, Star } from "lucide-react";
-import PlaceInput, { type PlaceSelection } from "@/components/PlaceInput";
+import PlaceInput, { type PlaceSelection } from "@/components/shared/PlaceInput";
 import { clearAccountMode } from "@/lib/accountMode";
 import { getCurrentUserProfile } from "@/lib/authProfile";
 import { getRiderProfile, saveRiderProfile } from "@/lib/riderProfile";
@@ -352,7 +352,7 @@ export default function BookingForm({
       clearAccountMode();
       setRiderLoggedIn(false);
       setMessage("Drivers must log out and sign in as a rider to book a ride.");
-      router.push("/rider-login");
+      router.push("/rider/login");
       return;
     }
 
@@ -366,7 +366,7 @@ export default function BookingForm({
         customerId: user?.id,
         driverId: selectedDriver.id
       });
-      router.push("/rider-login");
+      router.push("/rider/login");
       return;
     }
 

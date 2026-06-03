@@ -11,7 +11,7 @@ export function driverHomePath() {
 }
 
 export async function driverDestination(userId: string) {
-  if (!supabase) return "/driver/formaplication";
+  if (!supabase) return "/driver/application";
 
   const { data } = await supabase
     .from("driver_profiles")
@@ -19,5 +19,5 @@ export async function driverDestination(userId: string) {
     .eq("id", userId)
     .maybeSingle();
 
-  return data?.approval_status === "approved" ? driverHomePath() : "/driver/formaplication";
+  return data?.approval_status === "approved" ? driverHomePath() : "/driver/application";
 }

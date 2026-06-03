@@ -79,20 +79,20 @@ export default function TopNav() {
     setOpen(false);
     setRole(null);
     setEmail("");
-    router.replace(pathname.startsWith("/driver") ? "/driver" : "/rider-login");
+    router.replace(pathname.startsWith("/driver") ? "/driver" : "/rider/login");
   }
 
   async function openAccount() {
     setOpen(false);
 
     if (!isSupabaseConfigured || !supabase) {
-      router.push("/rider-login");
+      router.push("/rider/login");
       return;
     }
 
     const { user, profile } = await getCurrentUserProfile();
     if (!user) {
-      router.push("/rider-login");
+      router.push("/rider/login");
       return;
     }
 
@@ -101,7 +101,7 @@ export default function TopNav() {
 
     if (!isDriverDomain && nextRole !== "customer") {
       // fix: hoptodrop.com is rider-only, so the account icon never opens driver/admin portals from the main domain.
-      router.push("/rider-login");
+      router.push("/rider/login");
       return;
     }
 
@@ -162,7 +162,7 @@ export default function TopNav() {
           {!role && !email && authChecked && (
             <>
               <Link href="/">Booking</Link>
-              <Link href="/rider-login">Rider Login</Link>
+              <Link href="/rider/login">Rider Login</Link>
               <Link href="/driver">Driver Login</Link>
             </>
           )}

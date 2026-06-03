@@ -11,7 +11,7 @@ import {
   Square,
   UserRound
 } from "lucide-react";
-import PlaceInput, { type PlaceSelection } from "@/components/PlaceInput";
+import PlaceInput, { type PlaceSelection } from "@/components/shared/PlaceInput";
 import {
   loadDraftPlace,
   saveDraftPlace
@@ -85,7 +85,7 @@ export default function TripStepPage({ step }: { step: TripStep }) {
           <ArrowLeft size={28} />
         </Link>
         <strong>Book Your Transfer</strong>
-        <Link className="trip-step-login" href="/rider-login">
+        <Link className="trip-step-login" href="/rider/login">
           <UserRound size={18} fill="currentColor" />
           Account
         </Link>

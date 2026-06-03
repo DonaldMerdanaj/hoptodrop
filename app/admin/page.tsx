@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import AdminDashboard from "@/components/AdminDashboard";
+import AdminDashboard from "@/components/shared/AdminDashboard";
 import { requireRole, roleDashboard } from "@/lib/authProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -20,7 +20,7 @@ export default function AdminPage() {
 
       const { user, profile, allowed } = await requireRole(["admin"]);
       if (!user) {
-        router.replace("/rider-login");
+        router.replace("/rider/login");
         return;
       }
 

@@ -46,41 +46,39 @@ export function middleware(request: NextRequest) {
       return NextResponse.rewrite(rewrite);
     }
 
+    if (pathname === "/login") {
+      const rewrite = request.nextUrl.clone();
+      rewrite.pathname = "/driver/login";
+      rewrite.searchParams.delete("role");
+      return NextResponse.rewrite(rewrite);
+    }
+
     if (pathname === "/driver") {
       const redirect = request.nextUrl.clone();
       redirect.pathname = "/";
       return NextResponse.redirect(redirect);
     }
 
-    if (pathname === "/driver-login") {
+    if (pathname === "/driver/login") {
       const redirect = request.nextUrl.clone();
       redirect.pathname = "/login";
-      redirect.searchParams.set("role", "driver");
       return NextResponse.redirect(redirect);
     }
 
-    if (pathname === "/login" && searchParams.get("role") !== "driver") {
-      const redirect = request.nextUrl.clone();
-      redirect.searchParams.set("role", "driver");
-      return NextResponse.redirect(redirect);
-    }
-
-    if (pathname.startsWith("/customer-login") || pathname.startsWith("/rider-login") || pathname.startsWith("/client") || pathname.startsWith("/rider")) {
-      return NextResponse.redirect(mainUrl(request, "/rider-login"));
+    if (pathname.startsWith("/customer-login") || pathname.startsWith("/rider/login") || pathname.startsWith("/client") || pathname.startsWith("/rider")) {
+      return NextResponse.redirect(mainUrl(request, "/rider/login"));
     }
 
     return NextResponse.next();
   }
 
   if (productionHosts.has(hostname)) {
-    if (pathname === "/driver-login") {
-      const redirect = driverUrl(request, "/login");
-      redirect.searchParams.set("role", "driver");
-      return NextResponse.redirect(redirect);
+    if (pathname === "/driver/login") {
+      return NextResponse.redirect(driverUrl(request, "/login"));
     }
 
     if (pathname.startsWith("/driver") || (pathname === "/login" && searchParams.get("role") === "driver")) {
-      return NextResponse.redirect(driverUrl(request));
+      return NextResponse.redirect(driverUrl(request, pathname === "/login" ? "/login" : pathname));
     }
   }
 

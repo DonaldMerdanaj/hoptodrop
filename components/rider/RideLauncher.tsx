@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Square } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { PlaceSelection } from "@/components/PlaceInput";
+import type { PlaceSelection } from "@/components/shared/PlaceInput";
 import { loadDraftPlace } from "@/lib/tripDraft";
 
 const emptyPickup: PlaceSelection = { name: "", lat: 41.3275, lng: 19.8187 };

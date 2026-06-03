@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import AuthForm from "@/components/AuthForm";
+import AuthForm from "@/components/shared/AuthForm";
 
 function LoginContent() {
   const searchParams = useSearchParams();
@@ -37,7 +37,7 @@ function LoginContent() {
               : "By continuing, you agree to use your email for secure HopToDrop account access."
           }
         />
-        <Link className="auth-portal-link" href={isDriver ? "/rider-login" : "/login?role=driver"}>
+        <Link className="auth-portal-link" href={isDriver ? "/rider/login" : "/driver/login"}>
           {isDriver ? "Use rider login instead" : "Use driver login instead"}
         </Link>
       </section>

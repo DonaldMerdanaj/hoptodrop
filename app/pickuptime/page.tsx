@@ -1,4 +1,4 @@
-import TripStepPage from "@/components/TripStepPage";
+import TripStepPage from "@/components/rider/TripStepPage";
 
 export default function PickupTimePage() {
   return <TripStepPage step="pickuptime" />;

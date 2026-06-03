@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import DriverApp from "@/components/DriverApp";
+import DriverApp from "@/components/driver/DriverApp";
 import { getCurrentUserProfile, roleDashboard } from "@/lib/authProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -38,12 +38,12 @@ export default function DriverPage() {
 
       const { user, profile: appProfile } = await getCurrentUserProfile();
       if (!user) {
-        router.replace("/login?role=driver");
+        router.replace("/driver/login");
         return;
       }
 
       if (!appProfile) {
-        router.replace("/login?role=driver");
+        router.replace("/driver/login");
         return;
       }
 
@@ -69,7 +69,7 @@ export default function DriverPage() {
       }
 
       if (!data || data.approval_status !== "approved") {
-        router.replace("/driver/formaplication");
+        router.replace("/driver/application");
         return;
       }
 

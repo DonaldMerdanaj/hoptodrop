@@ -1,6 +1,6 @@
 "use client";
 
-import type { PlaceSelection } from "@/components/PlaceInput";
+import type { PlaceSelection } from "@/components/shared/PlaceInput";
 
 const pickupKey = "hoptodrop_trip_pickup";
 const dropoffKey = "hoptodrop_trip_dropoff";

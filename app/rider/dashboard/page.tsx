@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CalendarClock, LogOut, MapPinned, UserRound } from "lucide-react";
-import RiderBookings from "@/components/RiderBookings";
+import RiderBookings from "@/components/rider/RiderBookings";
 import { clearAccountMode } from "@/lib/accountMode";
 import { requireRole, roleDashboard } from "@/lib/authProfile";
 import { getRiderProfile } from "@/lib/riderProfile";
@@ -36,7 +36,7 @@ export default function RiderDashboardPage() {
 
         const { user: sessionUser, profile: appProfile, allowed } = await requireRole(["customer", "admin"]);
         if (!sessionUser) {
-          router.replace("/rider-login");
+          router.replace("/rider/login");
           return;
         }
 
@@ -74,7 +74,7 @@ export default function RiderDashboardPage() {
     setLoading(true);
     await supabase.auth.signOut();
     clearAccountMode();
-    router.replace("/rider-login");
+    router.replace("/rider/login");
   }
 
   return (
