@@ -1,7 +1,7 @@
 "use client";
 
 import type { User } from "@supabase/supabase-js";
-import { clearAccountMode, getAccountMode, setAccountMode, type AccountMode } from "@/lib/accountMode";
+import { clearAccountMode, setAccountMode, type AccountMode } from "@/lib/accountMode";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export type AppRole = "customer" | "driver" | "admin";
@@ -64,23 +64,24 @@ export async function ensureUserProfile(user: User, requestedRole: Exclude<AppRo
     updated_at: new Date().toISOString()
   };
 
+  // fix: use an idempotent insert to avoid the concurrent-login select/insert race while preserving an existing role.
+  const { data, error } = await supabase
+    .from("profiles")
+    .upsert(baseProfile, { onConflict: "id", ignoreDuplicates: true })
+    .select("*")
+    .maybeSingle();
+
+  if (error) throw error;
+  if (data) return data as CurrentUserProfile;
+
   const { data: existing, error: readError } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
-    .maybeSingle();
-
-  if (readError) throw readError;
-  if (existing) return existing as CurrentUserProfile;
-
-  const { data, error } = await supabase
-    .from("profiles")
-    .insert(baseProfile)
-    .select("*")
     .single();
 
-  if (error) throw error;
-  return data as CurrentUserProfile;
+  if (readError) throw readError;
+  return existing as CurrentUserProfile;
 }
 
 export async function getCurrentUserProfile() {
@@ -124,8 +125,4 @@ export function roleDashboard(role: AppRole | null | undefined) {
   if (role === "admin") return "/admin";
   if (role === "driver") return "/driver";
   return "/rider/dashboard";
-}
-
-export function currentAccountModeRole() {
-  return getAccountMode();
 }

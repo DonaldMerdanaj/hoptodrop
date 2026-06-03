@@ -13,6 +13,9 @@ function AuthCallbackContent() {
   const searchParams = useSearchParams();
   const [message, setMessage] = useState("Finishing secure sign in...");
   const [error, setError] = useState("");
+  const callbackMode = searchParams.get("mode") === "driver" ? "driver" : "customer";
+  const authMethod = searchParams.get("method") === "google" ? "Google login" : "Email confirmation";
+  const errorBackHref = callbackMode === "driver" ? "/login?role=driver" : "/rider-login";
 
   useEffect(() => {
     async function finishAuth() {
@@ -22,9 +25,7 @@ function AuthCallbackContent() {
       }
 
       const code = searchParams.get("code");
-      const requestedMode = searchParams.get("mode");
       // fix: callback role must come from the OAuth/email URL, never stale localStorage accountMode.
-      const callbackMode = requestedMode === "driver" ? "driver" : "customer";
       const driverDefaultNext = window.location.hostname === "driver.hoptodrop.com" ? "/" : "/driver";
       const next = searchParams.get("next") || (callbackMode === "driver" ? driverDefaultNext : "/rider/dashboard");
       const oauthError = searchParams.get("error_description") || searchParams.get("error");
@@ -96,16 +97,17 @@ function AuthCallbackContent() {
     }
 
     finishAuth();
-  }, [router, searchParams]);
+  }, [callbackMode, router, searchParams]);
 
   return (
     <main className="auth-page">
       <section className="auth-card callback-card">
-        <div className="eyebrow">Google login</div>
+        {/* fix: callback label reflects the auth method instead of always saying Google login. */}
+        <div className="eyebrow">{authMethod}</div>
         <h1>{error ? "Sign in failed" : "Welcome back"}</h1>
         <p>{error || message}</p>
         {error && (
-          <Link className="primary-btn" href="/rider-login">
+          <Link className="primary-btn" href={errorBackHref}>
             Back to login
           </Link>
         )}
@@ -120,7 +122,7 @@ export default function AuthCallbackPage() {
       fallback={
         <main className="auth-page">
           <section className="auth-card callback-card">
-            <div className="eyebrow">Google login</div>
+            <div className="eyebrow">Secure sign in</div>
             <h1>Welcome back</h1>
             <p>Finishing secure sign in...</p>
           </section>

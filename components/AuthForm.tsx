@@ -36,7 +36,7 @@ function authRedirectFor(role: "customer" | "driver", redirectPath?: string) {
 }
 
 function confirmationRedirectUrl(role: "customer" | "driver", redirectPath?: string) {
-  return `${window.location.origin}/auth/callback?next=${encodeURIComponent(authRedirectFor(role, redirectPath))}&mode=${role}`;
+  return `${window.location.origin}/auth/callback?next=${encodeURIComponent(authRedirectFor(role, redirectPath))}&mode=${role}&method=email`;
 }
 
 export default function AuthForm({ role, onAuthChange, redirectPath, title, note }: AuthFormProps) {
@@ -46,6 +46,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath, title, note
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function preparePortalSession() {
     if (!supabase) return;
@@ -141,34 +142,43 @@ export default function AuthForm({ role, onAuthChange, redirectPath, title, note
   }
 
   async function resendConfirmation() {
+    if (loading) return;
     if (!email) {
       setMessage("Enter your email address first, then resend the confirmation link.");
       return;
     }
 
+    setLoading(true);
     setMessage("Sending confirmation link...");
-    if (!isSupabaseConfigured || !supabase) {
-      setMessage("Supabase is required for email confirmation.");
-      return;
-    }
-
-    // fix: allow users to request another Supabase signup confirmation email if the first link was not received.
-    const { error } = await supabase.auth.resend({
-      type: "signup",
-      email,
-      options: {
-        emailRedirectTo: confirmationRedirectUrl(role, redirectPath)
+    try {
+      if (!isSupabaseConfigured || !supabase) {
+        setMessage("Supabase is required for email confirmation.");
+        return;
       }
-    });
 
-    if (error) setMessage(authMessage(error.message));
-    else setMessage("Confirmation link sent again. Check inbox and spam/junk.");
+      // fix: allow users to request another Supabase signup confirmation email if the first link was not received.
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: {
+          emailRedirectTo: confirmationRedirectUrl(role, redirectPath)
+        }
+      });
+
+      if (error) setMessage(authMessage(error.message));
+      else setMessage("Confirmation link sent again. Check inbox and spam/junk.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function signInWithGoogle() {
+    if (loading) return;
+    setLoading(true);
     setMessage("Opening Google login...");
     if (!isSupabaseConfigured || !supabase) {
       setMessage("Supabase is required for Google login.");
+      setLoading(false);
       return;
     }
 
@@ -177,7 +187,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath, title, note
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(authRedirectFor(role, redirectPath))}&mode=${role}`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(authRedirectFor(role, redirectPath))}&mode=${role}&method=google`,
         queryParams: {
           access_type: "offline",
           prompt: "consent"
@@ -185,19 +195,28 @@ export default function AuthForm({ role, onAuthChange, redirectPath, title, note
       }
     });
 
-    if (error) setMessage(authMessage(error.message));
+    if (error) {
+      setMessage(authMessage(error.message));
+      setLoading(false);
+    }
   }
 
   async function submitAuth(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
     if (!showPassword) {
       setShowPassword(true);
       return;
     }
 
-    // fix: route a single submit button through the selected login/signup mode.
-    if (mode === "login") await signIn();
-    else await signUp();
+    setLoading(true);
+    try {
+      // fix: route a single submit button through the selected login/signup mode.
+      if (mode === "login") await signIn();
+      else await signUp();
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -214,6 +233,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath, title, note
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
+        disabled={loading}
       />
       {showPassword && (
         <input
@@ -223,19 +243,22 @@ export default function AuthForm({ role, onAuthChange, redirectPath, title, note
           onChange={(e) => setPassword(e.target.value)}
           required
           autoFocus
+          disabled={loading}
         />
       )}
-      <button className="primary-btn auth-main-btn" type="submit">
-        {!showPassword ? "Continue" : mode === "login" ? "Login" : "Create Account"}
+      <button className="primary-btn auth-main-btn" type="submit" disabled={loading}>
+        {/* fix: disable async auth actions so mobile double-taps cannot create duplicate requests. */}
+        {loading ? "Please wait..." : !showPassword ? "Continue" : mode === "login" ? "Login" : "Create Account"}
       </button>
       <div className="auth-divider"><span />or<span /></div>
-      <button className="secondary-btn auth-google-btn" type="button" onClick={signInWithGoogle}>
+      <button className="secondary-btn auth-google-btn" type="button" onClick={signInWithGoogle} disabled={loading}>
         <span className="google-mark">G</span>
         Continue with Google
       </button>
       <button
         className="auth-toggle"
         type="button"
+        disabled={loading}
         onClick={() => {
           setMode((current) => (current === "login" ? "signup" : "login"));
           setShowPassword(true);
@@ -243,7 +266,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath, title, note
       >
         {mode === "login" ? "Don't have an account? Sign up" : "Already have an account? Log in"}
       </button>
-      <button className="auth-toggle" type="button" onClick={resendConfirmation}>
+      <button className="auth-toggle" type="button" onClick={resendConfirmation} disabled={loading}>
         Resend confirmation email
       </button>
       <small className="auth-note">{note || "By continuing, you agree to use your email for secure HopToDrop account access."}</small>

@@ -308,7 +308,8 @@ drop policy if exists "Drivers can update own location" on public.driver_locatio
 create policy "Anyone can read online drivers"
 on public.driver_locations for select
 to anon, authenticated
-using (true);
+-- fix: only expose active online drivers, never offline last-known GPS positions.
+using (status = 'online');
 
 create policy "Drivers can insert own location"
 on public.driver_locations for insert
