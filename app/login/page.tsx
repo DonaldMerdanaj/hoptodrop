@@ -38,7 +38,7 @@ function LoginContent() {
           }
         />
         <Link className="auth-portal-link" href={isDriver ? "/customer-login" : "/login?role=driver"}>
-          {isDriver ? "Book a ride as customer" : "Drive with HopToDrop"}
+          {isDriver ? "Use rider login instead" : "Use driver login instead"}
         </Link>
       </section>
     </main>

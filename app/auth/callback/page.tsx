@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { setAccountMode, type AccountMode } from "@/lib/accountMode";
-import { currentAccountModeRole, ensureUserProfile, getCurrentUserProfile } from "@/lib/authProfile";
+import { ensureUserProfile, getCurrentUserProfile } from "@/lib/authProfile";
 import { ensureCustomerProfile } from "@/lib/customerProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -22,8 +22,9 @@ function AuthCallbackContent() {
       }
 
       const code = searchParams.get("code");
-      const savedMode = currentAccountModeRole();
-      const callbackMode = searchParams.get("mode") === "driver" || savedMode === "driver" ? "driver" : "customer";
+      const requestedMode = searchParams.get("mode");
+      // fix: callback role must come from the OAuth/email URL, never stale localStorage accountMode.
+      const callbackMode = requestedMode === "driver" ? "driver" : "customer";
       const next = searchParams.get("next") || (callbackMode === "driver" ? "/driver" : "/client/dashboard");
       const oauthError = searchParams.get("error_description") || searchParams.get("error");
 
