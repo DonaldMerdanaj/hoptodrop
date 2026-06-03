@@ -2,6 +2,14 @@
 
 import { supabase } from "@/lib/supabase";
 
+export function driverHomePath() {
+  if (typeof window !== "undefined" && window.location.hostname === "driver.hoptodrop.com") {
+    return "/";
+  }
+
+  return "/driver";
+}
+
 export async function driverDestination(userId: string) {
   if (!supabase) return "/driver/formaplication";
 
@@ -11,5 +19,5 @@ export async function driverDestination(userId: string) {
     .eq("id", userId)
     .maybeSingle();
 
-  return data?.approval_status === "approved" ? "/driver" : "/driver/formaplication";
+  return data?.approval_status === "approved" ? driverHomePath() : "/driver/formaplication";
 }

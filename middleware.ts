@@ -52,6 +52,12 @@ export function middleware(request: NextRequest) {
       return NextResponse.rewrite(rewrite);
     }
 
+    if (pathname === "/driver") {
+      const redirect = request.nextUrl.clone();
+      redirect.pathname = "/";
+      return NextResponse.redirect(redirect);
+    }
+
     if (pathname === "/driver-login") {
       const redirect = request.nextUrl.clone();
       redirect.pathname = "/login";

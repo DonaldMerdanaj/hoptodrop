@@ -7,6 +7,7 @@ import DriverRegistrationForm from "@/components/DriverRegistrationForm";
 import TopNav from "@/components/TopNav";
 import { clearAccountMode } from "@/lib/accountMode";
 import { requireRole, roleDashboard } from "@/lib/authProfile";
+import { driverDestination } from "@/lib/driverRouting";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type DriverProfile = {
@@ -50,7 +51,7 @@ export default function DriverApplicationPage() {
         .maybeSingle();
 
       if (profileData?.approval_status === "approved") {
-        router.replace("/driver");
+        router.replace(await driverDestination(user.id));
         return;
       }
 

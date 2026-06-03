@@ -28,6 +28,10 @@ function authMessage(errorMessage: string) {
 }
 
 function authRedirectFor(role: "customer" | "driver", redirectPath?: string) {
+  if (role === "driver" && typeof window !== "undefined" && window.location.hostname === "driver.hoptodrop.com") {
+    return "/";
+  }
+
   return redirectPath || (role === "driver" ? "/driver" : "/client/dashboard");
 }
 

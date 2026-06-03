@@ -25,7 +25,8 @@ function AuthCallbackContent() {
       const requestedMode = searchParams.get("mode");
       // fix: callback role must come from the OAuth/email URL, never stale localStorage accountMode.
       const callbackMode = requestedMode === "driver" ? "driver" : "customer";
-      const next = searchParams.get("next") || (callbackMode === "driver" ? "/driver" : "/client/dashboard");
+      const driverDefaultNext = window.location.hostname === "driver.hoptodrop.com" ? "/" : "/driver";
+      const next = searchParams.get("next") || (callbackMode === "driver" ? driverDefaultNext : "/client/dashboard");
       const oauthError = searchParams.get("error_description") || searchParams.get("error");
 
       if (oauthError) {
