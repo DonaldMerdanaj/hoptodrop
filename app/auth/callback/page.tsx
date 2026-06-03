@@ -13,9 +13,9 @@ function AuthCallbackContent() {
   const searchParams = useSearchParams();
   const [message, setMessage] = useState("Finishing secure sign in...");
   const [error, setError] = useState("");
-  const callbackMode = searchParams.get("mode") === "driver" ? "driver" : "customer";
+  const callbackMode = searchParams.get("mode") === "driver" || searchParams.get("next")?.includes("driver.hoptodrop.com") ? "driver" : "customer";
   const authMethod = searchParams.get("method") === "google" ? "Google login" : "Email confirmation";
-  const errorBackHref = callbackMode === "driver" ? "/driver/login" : "/rider/login";
+  const errorBackHref = callbackMode === "driver" ? "https://driver.hoptodrop.com/login" : "/rider/login";
 
   useEffect(() => {
     async function finishAuth() {
@@ -26,12 +26,8 @@ function AuthCallbackContent() {
 
       const code = searchParams.get("code");
       // fix: callback role must come from the OAuth/email URL, never stale localStorage accountMode.
-      const driverDefaultNext = window.location.hostname === "driver.hoptodrop.com" ? "/" : "https://driver.hoptodrop.com/";
-      let next = searchParams.get("next") || (callbackMode === "driver" ? driverDefaultNext : "/rider/dashboard");
-      if (callbackMode === "driver" && next === "/" && window.location.hostname !== "driver.hoptodrop.com") {
-        // fix: driver OAuth/email callbacks opened on the rider domain must not fall back to the rider homepage.
-        next = "https://driver.hoptodrop.com/";
-      }
+      // fix: driver callbacks always finish on driver.hoptodrop.com, ignoring stale or unsafe next values.
+      const next = callbackMode === "driver" ? "https://driver.hoptodrop.com/" : searchParams.get("next") || "/rider/dashboard";
       const oauthError = searchParams.get("error_description") || searchParams.get("error");
 
       if (oauthError) {
@@ -98,7 +94,7 @@ function AuthCallbackContent() {
 
       setMessage("Email confirmed. Redirecting...");
       if (/^https?:\/\//.test(next)) {
-        window.location.assign(next);
+        window.location.replace(next);
         return;
       }
       router.replace(next);

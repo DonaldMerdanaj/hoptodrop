@@ -43,15 +43,25 @@ function authRedirectFor(role: "customer" | "driver", redirectPath?: string) {
 
 function navigateAfterAuth(router: ReturnType<typeof useRouter>, destination: string) {
   if (/^https?:\/\//.test(destination)) {
-    window.location.assign(destination);
+    window.location.replace(destination);
     return;
   }
 
   router.replace(destination);
 }
 
+function authCallbackOrigin(role: "customer" | "driver") {
+  if (typeof window === "undefined") return "";
+  const hostname = window.location.hostname;
+  if (hostname === "localhost" || hostname === "127.0.0.1") return window.location.origin;
+  if (role === "driver") return "https://driver.hoptodrop.com";
+  if (hostname === "driver.hoptodrop.com") return "https://hoptodrop.com";
+  return window.location.origin;
+}
+
 function confirmationRedirectUrl(role: "customer" | "driver", redirectPath?: string) {
-  return `${window.location.origin}/auth/callback?next=${encodeURIComponent(authRedirectFor(role, redirectPath))}&mode=${role}&method=email`;
+  // fix: driver OAuth/email callbacks must always return to driver.hoptodrop.com, never the rider/main origin.
+  return `${authCallbackOrigin(role)}/auth/callback?next=${encodeURIComponent(authRedirectFor(role, redirectPath))}&mode=${role}&method=email`;
 }
 
 export default function AuthForm({ role, onAuthChange, redirectPath, title, note }: AuthFormProps) {
@@ -202,7 +212,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath, title, note
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(authRedirectFor(role, redirectPath))}&mode=${role}&method=google`,
+        redirectTo: `${authCallbackOrigin(role)}/auth/callback?next=${encodeURIComponent(authRedirectFor(role, redirectPath))}&mode=${role}&method=google`,
         queryParams: {
           access_type: "offline",
           prompt: "consent"
