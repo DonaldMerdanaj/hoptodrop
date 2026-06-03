@@ -170,7 +170,7 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
         const booking = payload.new as Booking;
         if (!booking?.id) return;
 
-        if (booking.status === "pending") {
+        if (booking.status === "pending" && status === "online") {
           setIncoming(booking);
           setCountdown(15);
           if ("vibrate" in navigator) navigator.vibrate([180, 80, 180]);
@@ -195,7 +195,7 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
     return () => {
       client.removeChannel(channel);
     };
-  }, [profile.id]);
+  }, [profile.id, status]);
 
   useEffect(() => {
     if (!incoming) return;
@@ -338,7 +338,7 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
     if (!user) return;
 
     const vehicle = `${profile.vehicle_make} ${profile.vehicle_model} ${profile.license_plate}`.trim();
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("bookings")
       .update({
         status: "accepted",
@@ -349,11 +349,17 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
       })
       .eq("id", incoming.id)
       .is("driver_id", null)
-      .eq("status", "pending");
+      .eq("status", "pending")
+      .select("*")
+      .maybeSingle();
 
     if (error) setMessage(error.message);
+    else if (!data) {
+      setMessage("This ride was already accepted by another driver.");
+      setIncoming(null);
+    }
     else {
-      setActiveTrip({ ...incoming, status: "accepted", driver_id: user.id, driver_name: profile.full_name, driver_vehicle: vehicle });
+      setActiveTrip(data as Booking);
       setIncoming(null);
       await setDriverStatus("busy");
     }
