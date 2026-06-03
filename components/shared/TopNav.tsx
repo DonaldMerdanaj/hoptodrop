@@ -14,6 +14,7 @@ type SessionRole = "customer" | "driver" | "admin" | null;
 export default function TopNav() {
   const router = useRouter();
   const pathname = usePathname();
+  const isDriverDomain = typeof window !== "undefined" && window.location.hostname === "driver.hoptodrop.com";
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState<SessionRole>(null);
   const [email, setEmail] = useState("");
@@ -79,25 +80,24 @@ export default function TopNav() {
     setOpen(false);
     setRole(null);
     setEmail("");
-    router.replace(pathname.startsWith("/driver") ? "/driver" : "/rider/login");
+    router.replace(isDriverDomain ? "/login" : pathname.startsWith("/driver") ? "/driver" : "/rider/login");
   }
 
   async function openAccount() {
     setOpen(false);
 
     if (!isSupabaseConfigured || !supabase) {
-      router.push("/rider/login");
+      router.push(isDriverDomain ? "/login" : "/rider/login");
       return;
     }
 
     const { user, profile } = await getCurrentUserProfile();
     if (!user) {
-      router.push("/rider/login");
+      router.push(isDriverDomain ? "/login" : "/rider/login");
       return;
     }
 
     const nextRole = (profile?.role as SessionRole) || null;
-    const isDriverDomain = window.location.hostname === "driver.hoptodrop.com";
 
     if (!isDriverDomain && nextRole !== "customer") {
       // fix: hoptodrop.com is rider-only, so the account icon never opens driver/admin portals from the main domain.
@@ -161,9 +161,18 @@ export default function TopNav() {
           )}
           {!role && !email && authChecked && (
             <>
-              <Link href="/">Booking</Link>
-              <Link href="/rider/login">Rider Login</Link>
-              <Link href="/driver">Driver Login</Link>
+              {isDriverDomain ? (
+                <>
+                  <Link href="/login">Driver Login</Link>
+                  <Link href="/">Driver Home</Link>
+                </>
+              ) : (
+                <>
+                  <Link href="/">Booking</Link>
+                  <Link href="/rider/login">Rider Login</Link>
+                  <Link href="/driver">Driver Login</Link>
+                </>
+              )}
             </>
           )}
           {!authChecked && <span className="menu-account">Checking account...</span>}

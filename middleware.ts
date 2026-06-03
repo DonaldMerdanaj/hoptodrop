@@ -87,7 +87,8 @@ async function enforceRole(request: NextRequest, response: NextResponse, interna
     if (internalPathname === "/driver/login") return response;
     if (!session?.user) return NextResponse.redirect(driverUrl(request, "/login"));
     if (role !== "driver" && role !== "admin") {
-      return NextResponse.redirect(mainUrl(request, "/rider/login"));
+      // fix: driver.hoptodrop.com never redirects to the rider/main domain; wrong sessions stay in driver login.
+      return NextResponse.redirect(driverUrl(request, "/login"));
     }
   }
 
@@ -118,8 +119,9 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(redirect);
     }
 
-    if (pathname.startsWith("/customer-login") || pathname.startsWith("/rider/login") || pathname.startsWith("/client") || pathname.startsWith("/rider")) {
-      return NextResponse.redirect(mainUrl(request, "/rider/login"));
+    if (pathname.startsWith("/customer-login") || pathname.startsWith("/rider-login") || pathname.startsWith("/rider/login") || pathname.startsWith("/client") || pathname.startsWith("/rider")) {
+      // fix: any rider-style URL on driver.hoptodrop.com stays on the driver domain.
+      return NextResponse.redirect(driverUrl(request, "/login"));
     }
 
     if (isDriverCleanPath(pathname)) {
