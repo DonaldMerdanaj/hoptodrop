@@ -27,7 +27,7 @@ export default function Home() {
   const [checkingRole, setCheckingRole] = useState(true);
 
   useEffect(() => {
-    async function protectCustomerBookingPage() {
+    async function protectRiderBookingPage() {
       if (!isSupabaseConfigured) {
         setCheckingRole(false);
         return;
@@ -48,7 +48,7 @@ export default function Home() {
       setCheckingRole(false);
     }
 
-    protectCustomerBookingPage();
+    protectRiderBookingPage();
   }, [router]);
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export default function Home() {
         setCurrentPickup(pickup);
         setMapPickup(pickup);
         setLocationStatus(isInsideAlbania(pickup.lat, pickup.lng) ? "inside" : "outside");
-        window.dispatchEvent(new CustomEvent("taxi-customer-location", { detail: pickup }));
+        window.dispatchEvent(new CustomEvent("taxi-rider-location", { detail: pickup }));
       },
       () => setLocationStatus("unknown"),
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
@@ -115,7 +115,7 @@ export default function Home() {
 
   return (
     <main className="app-shell">
-      <LiveMap initialCustomerLocation={currentPickup} />
+      <LiveMap initialRiderLocation={currentPickup} />
       <div className="map-overlay" />
       <TopNav />
       {locationStatus === "outside" && (

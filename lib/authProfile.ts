@@ -123,7 +123,7 @@ export async function requireRole(allowedRoles: AppRole[]) {
 export function roleDashboard(role: AppRole | null | undefined) {
   if (role === "admin") return "/admin";
   if (role === "driver") return "/driver";
-  return "/client/dashboard";
+  return "/rider/dashboard";
 }
 
 export function currentAccountModeRole() {

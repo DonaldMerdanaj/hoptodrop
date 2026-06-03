@@ -11,7 +11,7 @@ function LoginContent() {
   const isDriver = role === "driver";
 
   return (
-    <main className={`auth-page auth-entry-page ${isDriver ? "driver-auth-page" : "customer-auth-page"}`}>
+    <main className={`auth-page auth-entry-page ${isDriver ? "driver-auth-page" : "rider-auth-page"}`}>
       {isDriver ? (
         <header className="driver-auth-hero">
           <div>
@@ -21,7 +21,7 @@ function LoginContent() {
           <p>Sign in, finish approval, go online, and manage trips from the live driver app.</p>
         </header>
       ) : (
-        <header className="auth-brand-bar customer-auth-hero">
+        <header className="auth-brand-bar rider-auth-hero">
           <span>HopToDrop</span>
           <small>Book airport and city transfers</small>
         </header>
@@ -29,7 +29,7 @@ function LoginContent() {
       <section className={`auth-entry-card ${isDriver ? "driver-auth-card" : ""}`}>
         <AuthForm
           role={role}
-          redirectPath={isDriver ? "/driver" : "/client/dashboard"}
+          redirectPath={isDriver ? "/driver" : "/rider/dashboard"}
           title={isDriver ? "Driver sign in" : "What's your email?"}
           note={
             isDriver
@@ -37,7 +37,7 @@ function LoginContent() {
               : "By continuing, you agree to use your email for secure HopToDrop account access."
           }
         />
-        <Link className="auth-portal-link" href={isDriver ? "/customer-login" : "/login?role=driver"}>
+        <Link className="auth-portal-link" href={isDriver ? "/rider-login" : "/login?role=driver"}>
           {isDriver ? "Use rider login instead" : "Use driver login instead"}
         </Link>
       </section>

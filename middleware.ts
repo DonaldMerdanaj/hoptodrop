@@ -71,7 +71,7 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(redirect);
     }
 
-    if (pathname.startsWith("/customer-login") || pathname.startsWith("/client")) {
+    if (pathname.startsWith("/customer-login") || pathname.startsWith("/rider-login") || pathname.startsWith("/client") || pathname.startsWith("/rider")) {
       return NextResponse.redirect(mainUrl(request));
     }
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { setAccountMode, type AccountMode } from "@/lib/accountMode";
 import { ensureUserProfile, getCurrentUserProfile } from "@/lib/authProfile";
-import { ensureCustomerProfile } from "@/lib/customerProfile";
+import { ensureRiderProfile } from "@/lib/riderProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 function AuthCallbackContent() {
@@ -26,7 +26,7 @@ function AuthCallbackContent() {
       // fix: callback role must come from the OAuth/email URL, never stale localStorage accountMode.
       const callbackMode = requestedMode === "driver" ? "driver" : "customer";
       const driverDefaultNext = window.location.hostname === "driver.hoptodrop.com" ? "/" : "/driver";
-      const next = searchParams.get("next") || (callbackMode === "driver" ? driverDefaultNext : "/client/dashboard");
+      const next = searchParams.get("next") || (callbackMode === "driver" ? driverDefaultNext : "/rider/dashboard");
       const oauthError = searchParams.get("error_description") || searchParams.get("error");
 
       if (oauthError) {
@@ -86,9 +86,9 @@ function AuthCallbackContent() {
       if (!profile) await ensureUserProfile(userData.user, callbackMode as "customer" | "driver");
       // fix: OAuth/email callback records whether the user entered customer or driver mode.
       setAccountMode(callbackMode as AccountMode);
-      if (next.startsWith("/client")) {
+      if (next.startsWith("/rider") || next.startsWith("/client")) {
         // fix: Google/email callback creates the persistent customer profile before opening dashboard.
-        await ensureCustomerProfile(userData.user);
+        await ensureRiderProfile(userData.user);
       }
 
       setMessage("Email confirmed. Redirecting...");
@@ -105,7 +105,7 @@ function AuthCallbackContent() {
         <h1>{error ? "Sign in failed" : "Welcome back"}</h1>
         <p>{error || message}</p>
         {error && (
-          <Link className="primary-btn" href="/customer-login">
+          <Link className="primary-btn" href="/rider-login">
             Back to login
           </Link>
         )}

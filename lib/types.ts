@@ -68,7 +68,7 @@ export type BookingRoutePoint = {
   recorded_at: string;
 };
 
-export type CustomerProfile = {
+export type RiderProfile = {
   id: string;
   email: string;
   full_name: string;

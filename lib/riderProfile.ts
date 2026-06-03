@@ -2,7 +2,7 @@ import type { User } from "@supabase/supabase-js";
 import { ensureUserProfile } from "@/lib/authProfile";
 import { supabase } from "@/lib/supabase";
 
-export type CustomerProfile = {
+export type RiderProfile = {
   id: string;
   email: string;
   full_name: string;
@@ -22,7 +22,7 @@ function metadataAvatar(user: User) {
   return metadata.avatar_url || metadata.picture || "";
 }
 
-export async function ensureCustomerProfile(user: User) {
+export async function ensureRiderProfile(user: User) {
   if (!supabase) return null;
   await ensureUserProfile(user, "customer");
 
@@ -33,7 +33,6 @@ export async function ensureCustomerProfile(user: User) {
     avatar_url: metadataAvatar(user)
   };
 
-  // fix: customer auth now writes a persistent profile row for both Google and manual sign-ins.
   const { data, error } = await supabase
     .from("customer_profiles")
     .upsert(profile, { onConflict: "id" })
@@ -41,10 +40,10 @@ export async function ensureCustomerProfile(user: User) {
     .single();
 
   if (error) throw error;
-  return data as CustomerProfile;
+  return data as RiderProfile;
 }
 
-export async function getCustomerProfile(user: User) {
+export async function getRiderProfile(user: User) {
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -54,14 +53,14 @@ export async function getCustomerProfile(user: User) {
     .maybeSingle();
 
   if (error) throw error;
-  if (data) return data as CustomerProfile;
-  return ensureCustomerProfile(user);
+  if (data) return data as RiderProfile;
+  return ensureRiderProfile(user);
 }
 
-export async function saveCustomerProfile(user: User, values: { full_name?: string; phone?: string }) {
+export async function saveRiderProfile(user: User, values: { full_name?: string; phone?: string }) {
   if (!supabase) return null;
 
-  const existing = await getCustomerProfile(user);
+  const existing = await getRiderProfile(user);
   const profile = {
     id: user.id,
     email: user.email || existing?.email || "",
@@ -82,7 +81,6 @@ export async function saveCustomerProfile(user: User, values: { full_name?: stri
     .eq("id", user.id)
     .eq("role", "customer");
 
-  // fix: customer-entered booking details update the persistent customer profile.
   const { data, error } = await supabase
     .from("customer_profiles")
     .upsert(profile, { onConflict: "id" })
@@ -90,5 +88,5 @@ export async function saveCustomerProfile(user: User, values: { full_name?: stri
     .single();
 
   if (error) throw error;
-  return data as CustomerProfile;
+  return data as RiderProfile;
 }

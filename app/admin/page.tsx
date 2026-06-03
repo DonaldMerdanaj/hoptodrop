@@ -20,7 +20,7 @@ export default function AdminPage() {
 
       const { user, profile, allowed } = await requireRole(["admin"]);
       if (!user) {
-        router.replace("/customer-login");
+        router.replace("/rider-login");
         return;
       }
 

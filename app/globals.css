@@ -170,11 +170,11 @@ button { cursor: pointer; }
 .bottom-nav { position: fixed; z-index: 50; left: 50%; bottom: 0; transform: translateX(-50%); display: none; grid-template-columns: repeat(3, 1fr); gap: 6px; width: min(100vw, 430px); padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); border: 1px solid var(--line); border-bottom: 0; border-radius: 20px 20px 0 0; background: rgba(255,255,255,.98); box-shadow: 0 -16px 42px rgba(17,24,39,.12); }
 .bottom-nav a { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 10px 6px; border-radius: 14px; color: var(--muted); background: var(--surface); font-size: 12px; font-weight: 900; transition: color .18s ease, background .18s ease; }
 .bottom-nav a.active { color: #fff; background: var(--primary); }
-.customer-session-marker { display: none; }
-.app-shell:has(.customer-session-marker) .ride-launcher,
-.app-shell:has(.customer-session-marker) .service-blocker,
-.app-shell:has(.customer-session-marker) .ride-sheet { bottom: calc(12px + env(safe-area-inset-bottom)); }
-.auth-page:has(.customer-session-marker) { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+.rider-session-marker { display: none; }
+.app-shell:has(.rider-session-marker) .ride-launcher,
+.app-shell:has(.rider-session-marker) .service-blocker,
+.app-shell:has(.rider-session-marker) .ride-sheet { bottom: calc(12px + env(safe-area-inset-bottom)); }
+.auth-page:has(.rider-session-marker) { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 
 /* fix: add shared auth, admin, list, and secondary button styles used across protected pages. */
 .auth-page, .admin-page { min-height: 100dvh; width: min(100vw, 430px); margin: 0 auto; display: block; padding: calc(84px + env(safe-area-inset-top)) 12px calc(92px + env(safe-area-inset-bottom)); background: var(--bg); box-shadow: 0 0 0 1px rgba(17,24,39,.08), 0 28px 80px rgba(17,24,39,.18); }
@@ -202,10 +202,10 @@ button { cursor: pointer; }
 .auth-entry-form .auth-note { margin-top: 38px; color: #5f6368; text-align: left; font-size: 14px; line-height: 1.55; }
 .auth-entry-form .status-message { color: #111; font-size: 14px; line-height: 1.4; }
 .auth-dev-warning { margin: -4px 0 4px; padding: 10px 12px; border-radius: 10px; color: #374151; background: #f3f4f6; font-size: 13px; line-height: 1.35; }
-.customer-auth-page { background: #fff; }
-.customer-auth-hero { display: grid; align-content: end; gap: 6px; }
-.customer-auth-hero span { display: block; }
-.customer-auth-hero small { display: block; color: rgba(255,255,255,.72); font-size: 13px; font-weight: 650; letter-spacing: 0; }
+.rider-auth-page { background: #fff; }
+.rider-auth-hero { display: grid; align-content: end; gap: 6px; }
+.rider-auth-hero span { display: block; }
+.rider-auth-hero small { display: block; color: rgba(255,255,255,.72); font-size: 13px; font-weight: 650; letter-spacing: 0; }
 .driver-auth-page { background: #f8fafc; }
 .driver-auth-hero { min-height: calc(214px + env(safe-area-inset-top)); display: grid; align-content: end; gap: 18px; padding: calc(20px + env(safe-area-inset-top)) 26px 26px; color: #fff; background: linear-gradient(180deg, #111827 0%, #020617 100%); }
 .driver-auth-hero div { display: grid; gap: 8px; }

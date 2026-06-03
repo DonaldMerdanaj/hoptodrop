@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { clearAccountMode, setAccountMode } from "@/lib/accountMode";
 import { ensureUserProfile, getCurrentUserProfile } from "@/lib/authProfile";
-import { ensureCustomerProfile } from "@/lib/customerProfile";
+import { ensureRiderProfile } from "@/lib/riderProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type AuthFormProps = {
@@ -32,7 +32,7 @@ function authRedirectFor(role: "customer" | "driver", redirectPath?: string) {
     return "/";
   }
 
-  return redirectPath || (role === "driver" ? "/driver" : "/client/dashboard");
+  return redirectPath || (role === "driver" ? "/driver" : "/rider/dashboard");
 }
 
 function confirmationRedirectUrl(role: "customer" | "driver", redirectPath?: string) {
@@ -88,7 +88,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath, title, note
       if (!profile && data.user) await ensureUserProfile(data.user, role);
       if (role === "customer" && data.user) {
         // fix: one email can be used as customer or driver; customer mode stores a rider profile.
-        await ensureCustomerProfile(data.user);
+        await ensureRiderProfile(data.user);
       }
 
       // fix: accountMode is only a UI hint; security uses supabase.auth.getUser plus profiles.role.
@@ -122,7 +122,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath, title, note
       if (data.session && data.user) await ensureUserProfile(data.user, role);
       if (role === "customer" && data.session && data.user) {
         // fix: if email confirmation is disabled, create the customer profile immediately after signup.
-        await ensureCustomerProfile(data.user);
+        await ensureRiderProfile(data.user);
       }
       if (data.session) setAccountMode(role);
       if (!data.session) {

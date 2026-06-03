@@ -6,7 +6,7 @@ import { Car, CheckCircle2, Clock3, LocateFixed, MapPin, Navigation, Search, Sta
 import PlaceInput, { type PlaceSelection } from "@/components/PlaceInput";
 import { clearAccountMode } from "@/lib/accountMode";
 import { getCurrentUserProfile } from "@/lib/authProfile";
-import { getCustomerProfile, saveCustomerProfile } from "@/lib/customerProfile";
+import { getRiderProfile, saveRiderProfile } from "@/lib/riderProfile";
 import { loadGoogleMaps } from "@/lib/googleMaps";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type { DriverLocation } from "@/lib/types";
@@ -83,8 +83,8 @@ export default function BookingForm({
   const [dropoff, setDropoff] = useState<PlaceSelection>(places[1]);
   const [availableDrivers, setAvailableDrivers] = useState<AvailableDriver[]>([]);
   const [selectedDriver, setSelectedDriver] = useState<AvailableDriver | null>(null);
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
+  const [riderName, setRiderName] = useState("");
+  const [riderPhone, setRiderPhone] = useState("");
   const [passengers, setPassengers] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [typingMode, setTypingMode] = useState(false);
@@ -92,7 +92,7 @@ export default function BookingForm({
   const [message, setMessage] = useState("");
   const [locatingPickup, setLocatingPickup] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
-  const [customerLoggedIn, setCustomerLoggedIn] = useState(false);
+  const [riderLoggedIn, setRiderLoggedIn] = useState(false);
   const dragStartY = useRef<number | null>(null);
 
   const tripKm = distanceKm(pickup.lat, pickup.lng, dropoff.lat, dropoff.lng);
@@ -135,22 +135,21 @@ export default function BookingForm({
   useEffect(() => {
     if (!open || !isSupabaseConfigured || !supabase) return;
 
-    async function checkCustomerSession() {
+    async function checkRiderSession() {
       const { user, profile: appProfile } = await getCurrentUserProfile();
-      setCustomerLoggedIn(Boolean(user && appProfile?.role === "customer"));
+      setRiderLoggedIn(Boolean(user && appProfile?.role === "customer"));
 
       if (user && appProfile?.role === "customer") {
-        // fix: booking details prefill from the saved customer profile in the database.
-        const profile = await getCustomerProfile(user);
-        setCustomerName((current) => current || profile?.full_name || "");
-        setCustomerPhone((current) => current || profile?.phone || "");
+        const profile = await getRiderProfile(user);
+        setRiderName((current) => current || profile?.full_name || "");
+        setRiderPhone((current) => current || profile?.phone || "");
       }
     }
 
-    checkCustomerSession();
+    checkRiderSession();
     const { data } = supabase.auth.onAuthStateChange(() => {
       getCurrentUserProfile().then(({ user, profile }) => {
-        setCustomerLoggedIn(Boolean(user && profile?.role === "customer"));
+        setRiderLoggedIn(Boolean(user && profile?.role === "customer"));
       });
     });
 
@@ -201,7 +200,7 @@ export default function BookingForm({
 
     const client = supabase;
     function applyBookingStatus(booking: { status?: string; driver_name?: string | null }) {
-      // fix: customer booking sheet now follows the real driver accept/pickup/job-done lifecycle.
+      // fix: rider booking sheet now follows the real driver accept/pickup/job-done lifecycle.
       if (booking.status === "accepted") {
         setStep("assigned");
         setMessage(`${booking.driver_name || "Your driver"} accepted and is driving to pickup.`);
@@ -212,7 +211,7 @@ export default function BookingForm({
       }
       if (booking.status === "started") {
         setStep("started");
-        setMessage("Client picked up. Ride is in progress.");
+        setMessage("Rider picked up. Ride is in progress.");
       }
       if (booking.status === "completed") {
         setStep("completed");
@@ -246,7 +245,7 @@ export default function BookingForm({
       )
       .subscribe();
 
-    // fix: poll booking status as a fallback so customers see accept/pickup/done promptly if realtime lags.
+    // fix: poll booking status as a fallback so riders see accept/pickup/done promptly if realtime lags.
     refreshBookingStatus();
     const statusTimer = window.setInterval(refreshBookingStatus, 2500);
 
@@ -333,7 +332,7 @@ export default function BookingForm({
     }
 
     setStep("details");
-    setMessage(`${selectedDriver.driver_name} selected. Add customer details to request the ride.`);
+    setMessage(`${selectedDriver.driver_name} selected. Add rider details to request the ride.`);
   }
 
   async function confirmRide() {
@@ -351,14 +350,14 @@ export default function BookingForm({
     if (appProfile?.role === "driver") {
       await supabase.auth.signOut();
       clearAccountMode();
-      setCustomerLoggedIn(false);
-      setMessage("Drivers must log out and sign in as a customer to book a ride.");
-      router.push("/customer-login");
+      setRiderLoggedIn(false);
+      setMessage("Drivers must log out and sign in as a rider to book a ride.");
+      router.push("/rider-login");
       return;
     }
 
     if (!user || appProfile?.role !== "customer") {
-      setMessage("Log in as a customer to confirm this ride.");
+      setMessage("Log in as a rider to confirm this ride.");
       console.log("[booking:create:blocked]", {
         route: window.location.pathname,
         userId: user?.id,
@@ -367,22 +366,22 @@ export default function BookingForm({
         customerId: user?.id,
         driverId: selectedDriver.id
       });
-      router.push("/customer-login");
+      router.push("/rider-login");
       return;
     }
 
     setMessage("Requesting ride...");
-    // fix: ride confirmation stores the latest customer details in the database profile.
+    // fix: ride confirmation stores the latest rider details in the database profile.
     const profile = user
-      ? await saveCustomerProfile(user, { full_name: customerName, phone: customerPhone })
+      ? await saveRiderProfile(user, { full_name: riderName, phone: riderPhone })
       : null;
-    const finalCustomerName = customerName || profile?.full_name || "HopToDrop rider";
-    const finalCustomerPhone = customerPhone || profile?.phone || "+355";
+    const finalRiderName = riderName || profile?.full_name || "HopToDrop rider";
+    const finalRiderPhone = riderPhone || profile?.phone || "+355";
 
     const booking = {
       customer_id: null,
-      customer_name: finalCustomerName,
-      customer_phone: finalCustomerPhone,
+      customer_name: finalRiderName,
+      customer_phone: finalRiderPhone,
       pickup: pickup.name,
       dropoff: dropoff.name,
       pickup_lat: pickup.lat,
@@ -587,8 +586,8 @@ export default function BookingForm({
               <span>{selectedDriver.vehicle || "Taxi"} - {selectedDriver.eta} min away</span>
             </div>
             <div className="quick-grid details-grid">
-              <label><span>Name</span><input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Rider name" /></label>
-              <label><span>Phone</span><input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="+355 ..." /></label>
+              <label><span>Name</span><input value={riderName} onChange={(e) => setRiderName(e.target.value)} placeholder="Rider name" /></label>
+              <label><span>Phone</span><input value={riderPhone} onChange={(e) => setRiderPhone(e.target.value)} placeholder="+355 ..." /></label>
               <label><span>Passengers</span><input type="number" min={1} max={selectedDriver.seats} value={passengers} onChange={(e) => setPassengers(Number(e.target.value))} /></label>
               <label><span>Payment</span><select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}><option>Cash</option><option>Card</option><option>Wallet</option></select></label>
             </div>
@@ -598,7 +597,7 @@ export default function BookingForm({
             </div>
             <button className="primary-btn request-btn" type="submit">
               <MapPin size={19} />
-              {customerLoggedIn ? "Confirm ride" : "Log in to confirm ride"}
+              {riderLoggedIn ? "Confirm ride" : "Log in to confirm ride"}
             </button>
             <button className="secondary-btn compact-step-back" type="button" onClick={() => setStep("driver")}>Back to taxis</button>
           </>

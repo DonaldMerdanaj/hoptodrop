@@ -29,24 +29,24 @@ function pinIcon(maps: any, color: string, scale = 9) {
   };
 }
 
-export default function LiveMap({ initialCustomerLocation }: { initialCustomerLocation?: RoutePoint | null }) {
+export default function LiveMap({ initialRiderLocation }: { initialRiderLocation?: RoutePoint | null }) {
   // fix: LiveMap now uses Google Maps directly, so the old react-leaflet dynamic imports and module-scope L.DivIcon SSR crash path are removed.
   const mapNode = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const markerRefs = useRef<any[]>([]);
-  const customerMarkerRef = useRef<any>(null);
+  const riderMarkerRef = useRef<any>(null);
   const directionsRef = useRef<any>(null);
   const [drivers, setDrivers] = useState<DriverLocation[]>([]);
   const [route, setRoute] = useState({ pickup: defaultPickup, dropoff: defaultDropoff });
-  const [customerLocation, setCustomerLocation] = useState<RoutePoint | null>(null);
+  const [riderLocation, setRiderLocation] = useState<RoutePoint | null>(null);
   const [mapError, setMapError] = useState("");
 
   useEffect(() => {
-    if (initialCustomerLocation) {
-      setCustomerLocation(initialCustomerLocation);
-      setRoute((current) => ({ ...current, pickup: initialCustomerLocation }));
+    if (initialRiderLocation) {
+      setRiderLocation(initialRiderLocation);
+      setRoute((current) => ({ ...current, pickup: initialRiderLocation }));
     }
-  }, [initialCustomerLocation]);
+  }, [initialRiderLocation]);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
@@ -93,19 +93,19 @@ export default function LiveMap({ initialCustomerLocation }: { initialCustomerLo
       if (detail?.pickup && detail?.dropoff) setRoute(detail);
     }
 
-    function onCustomerLocation(event: Event) {
+    function onRiderLocation(event: Event) {
       const detail = (event as CustomEvent<RoutePoint>).detail;
       if (detail?.lat && detail?.lng) {
-        setCustomerLocation(detail);
+        setRiderLocation(detail);
         setRoute((current) => ({ ...current, pickup: detail }));
       }
     }
 
     window.addEventListener("taxi-route-preview", onPreview);
-    window.addEventListener("taxi-customer-location", onCustomerLocation);
+    window.addEventListener("taxi-rider-location", onRiderLocation);
     return () => {
       window.removeEventListener("taxi-route-preview", onPreview);
-      window.removeEventListener("taxi-customer-location", onCustomerLocation);
+      window.removeEventListener("taxi-rider-location", onRiderLocation);
     };
   }, []);
 
@@ -165,15 +165,15 @@ export default function LiveMap({ initialCustomerLocation }: { initialCustomerLo
         markerRefs.current.forEach((marker) => marker.setMap(null));
         markerRefs.current = [];
         directionsRef.current?.setMap(null);
-        customerMarkerRef.current?.setMap(null);
+        riderMarkerRef.current?.setMap(null);
 
         const bounds = new maps.LatLngBounds();
         const pickupLatLng = asLatLng(route.pickup);
         const dropoffLatLng = asLatLng(route.dropoff);
 
-        if (customerLocation) {
-          const center = asLatLng(customerLocation);
-          customerMarkerRef.current = new maps.Marker({
+        if (riderLocation) {
+          const center = asLatLng(riderLocation);
+          riderMarkerRef.current = new maps.Marker({
             map: mapRef.current,
             position: center,
             title: "Current location",
@@ -235,12 +235,12 @@ export default function LiveMap({ initialCustomerLocation }: { initialCustomerLo
           });
 
           mapRef.current.fitBounds(bounds, 80);
-        } else if (!customerLocation && !bounds.isEmpty()) {
+        } else if (!riderLocation && !bounds.isEmpty()) {
           mapRef.current.fitBounds(bounds, 80);
         }
       })
       .catch((error) => setMapError(error.message));
-  }, [customerLocation, drivers, route]);
+  }, [riderLocation, drivers, route]);
 
   return (
     <div className="map-wrap">

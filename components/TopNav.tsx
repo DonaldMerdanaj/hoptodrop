@@ -78,27 +78,27 @@ export default function TopNav() {
     setOpen(false);
     setRole(null);
     setEmail("");
-    router.replace(pathname.startsWith("/driver") ? "/driver" : "/customer-login");
+    router.replace(pathname.startsWith("/driver") ? "/driver" : "/rider-login");
   }
 
   async function openAccount() {
     setOpen(false);
 
     if (!isSupabaseConfigured || !supabase) {
-      router.push("/customer-login");
+      router.push("/rider-login");
       return;
     }
 
     const { user, profile } = await getCurrentUserProfile();
     if (!user) {
-      router.push("/customer-login");
+      router.push("/rider-login");
       return;
     }
 
     const nextRole = (profile?.role as SessionRole) || null;
     if (nextRole === "admin") router.push("/admin");
     else if (nextRole === "driver") router.push(await driverDestination(user.id));
-    else router.push("/client/dashboard");
+    else router.push("/rider/dashboard");
   }
 
   return (
@@ -123,7 +123,7 @@ export default function TopNav() {
             <>
               <span className="menu-account">{email}</span>
               <Link href="/">Booking</Link>
-              <Link href="/client/dashboard">Dashboard</Link>
+              <Link href="/rider/dashboard">Dashboard</Link>
               <button type="button" onClick={logout}>Log out</button>
             </>
           )}
@@ -146,14 +146,14 @@ export default function TopNav() {
             <>
               <span className="menu-account">{email}</span>
               <Link href="/">Booking</Link>
-              <Link href="/client/dashboard">Dashboard</Link>
+              <Link href="/rider/dashboard">Dashboard</Link>
               <button type="button" onClick={logout}>Log out</button>
             </>
           )}
           {!role && !email && authChecked && (
             <>
               <Link href="/">Booking</Link>
-              <Link href="/customer-login">Customer Login</Link>
+              <Link href="/rider-login">Rider Login</Link>
               <Link href="/driver">Driver Login</Link>
             </>
           )}

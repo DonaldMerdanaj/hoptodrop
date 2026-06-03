@@ -5,13 +5,13 @@ import { getCurrentUserProfile } from "@/lib/authProfile";
 import type { Booking } from "@/lib/types";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
-export default function CustomerBookings() {
+export default function RiderBookings() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let customerId = "";
+    let riderId = "";
     let mounted = true;
 
     async function load() {
@@ -22,21 +22,20 @@ export default function CustomerBookings() {
         }
 
         const { user, profile } = await getCurrentUserProfile();
-        customerId = user?.id || "";
-        if (!customerId) {
+        riderId = user?.id || "";
+        if (!riderId) {
           setMessage("Log in to see your ride history.");
           return;
         }
         if (profile?.role !== "customer" && profile?.role !== "admin") {
-          setMessage("This dashboard is only for customer accounts.");
+          setMessage("This dashboard is only for rider accounts.");
           return;
         }
 
-        // fix: customer dashboard shows only the logged-in customer's real bookings.
         const { data, error } = await supabase
           .from("bookings")
           .select("*")
-          .eq("customer_id", customerId)
+          .eq("customer_id", riderId)
           .order("created_at", { ascending: false });
 
         if (!mounted) return;
@@ -55,15 +54,15 @@ export default function CustomerBookings() {
     if (!isSupabaseConfigured || !supabase) return;
     const client = supabase;
     const channel = client
-      .channel("customer-bookings")
+      .channel("rider-bookings")
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, (payload) => {
         const next = payload.new as Booking;
         if (!next?.id) return;
-        if (customerId && next.customer_id !== customerId) return;
-        console.log("[booking:customer-realtime]", {
+        if (riderId && next.customer_id !== riderId) return;
+        console.log("[booking:rider-realtime]", {
           route: window.location.pathname,
           bookingId: next.id,
-          customerId: next.customer_id,
+          riderId: next.customer_id,
           driverId: next.driver_id
         });
         setBookings((current) => {
