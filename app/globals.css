@@ -219,6 +219,21 @@ button { cursor: pointer; }
 .driver-auth-page .auth-google-btn { background: #f3f4f6; }
 .callback-card { margin-top: 18vh; }
 .dashboard-card { display: grid; gap: 14px; }
+.rider-dashboard-page { display: grid; align-content: start; gap: 12px; padding: calc(16px + env(safe-area-inset-top)) 12px calc(28px + env(safe-area-inset-bottom)); background: #f8fafc; }
+.rider-dashboard-top { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; gap: 8px; }
+.rider-dashboard-top a, .rider-dashboard-top button { width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 999px; color: #0b0f19; background: #fff; box-shadow: 0 8px 22px rgba(15,23,42,.08); }
+.rider-dashboard-top strong { text-align: center; font-size: 18px; letter-spacing: 0; }
+.rider-hero-card { display: grid; grid-template-columns: minmax(0, 1fr) 52px; align-items: center; gap: 14px; min-height: 136px; padding: 18px; border-radius: 28px; color: #fff; background: linear-gradient(135deg, #050505, #1f2937); box-shadow: 0 18px 42px rgba(15,23,42,.18); }
+.rider-hero-card span { color: #d1d5db; font-size: 11px; font-weight: 950; letter-spacing: .13em; text-transform: uppercase; }
+.rider-hero-card h1 { margin: 6px 0 5px; font-size: 28px; line-height: 1.05; letter-spacing: 0; }
+.rider-hero-card p { margin: 0; color: #cbd5e1; font-size: 13px; line-height: 1.35; }
+.rider-hero-card > svg { width: 52px; height: 52px; padding: 12px; border-radius: 18px; color: #111827; background: #fff; }
+.rider-dashboard-card { display: grid; gap: 14px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.rider-loading-card, .rider-error-card { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 22px; background: #fff; box-shadow: 0 14px 34px rgba(15,23,42,.07); }
+.rider-loading-card span { width: 48px; height: 48px; border-radius: 999px; background: linear-gradient(90deg, #e5e7eb, #f8fafc, #e5e7eb); background-size: 200% 100%; animation: shimmer 1.2s infinite linear; }
+.rider-loading-card strong, .rider-error-card strong { display: block; font-size: 15px; }
+.rider-loading-card p, .rider-error-card p { margin: 3px 0 0; color: var(--muted); font-size: 13px; line-height: 1.35; }
+.rider-error-card { grid-template-columns: 1fr; border-color: #fecaca; background: #fff7f7; }
 .profile-panel { display: grid; grid-template-columns: 58px 1fr; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface-soft); }
 .profile-panel img, .profile-fallback { width: 58px; height: 58px; border-radius: 999px; }
 .profile-panel img { object-fit: cover; border: 1px solid var(--line); }
@@ -229,8 +244,13 @@ button { cursor: pointer; }
 .dashboard-actions { display: grid; gap: 10px; }
 .dashboard-actions .secondary-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
 .ride-history-list { margin-top: 4px; }
+.ride-history-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ride-history-heading h2 { margin: 0; font-size: 19px; }
+.ride-history-heading span { border-radius: 999px; padding: 6px 9px; color: var(--muted); background: var(--surface-soft); font-size: 12px; font-weight: 900; }
 .ride-history-list .list-item { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; background: var(--surface-soft); }
 .ride-history-list .list-item strong, .ride-history-list .list-item p { overflow: hidden; text-overflow: ellipsis; }
+.ride-skeleton { height: 88px; border-radius: 20px; background: linear-gradient(90deg, #e5e7eb, #f8fafc, #e5e7eb); background-size: 200% 100%; animation: shimmer 1.2s infinite linear; }
+.ride-skeleton.small { height: 68px; opacity: .72; }
 .driver-controls, .driver-registration { margin-top: 18px; }
 .driver-dashboard-page { display: grid; align-content: start; gap: 12px; padding-left: 10px; padding-right: 10px; }
 .driver-dashboard-header { display: grid; grid-template-columns: minmax(0, 1fr) 46px; align-items: start; gap: 12px; padding: 4px 4px 2px; }
@@ -439,6 +459,11 @@ button { cursor: pointer; }
 @keyframes helper-in {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
 }
 
 @media (min-width: 760px) {

@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut, MapPinned, UserRound } from "lucide-react";
+import { ArrowLeft, CalendarClock, LogOut, MapPinned, UserRound } from "lucide-react";
 import CustomerBookings from "@/components/CustomerBookings";
-import TopNav from "@/components/TopNav";
 import { clearAccountMode } from "@/lib/accountMode";
 import { requireRole, roleDashboard } from "@/lib/authProfile";
 import { getCustomerProfile } from "@/lib/customerProfile";
@@ -25,36 +24,50 @@ export default function ClientDashboardPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let mounted = true;
+
     async function loadUser() {
-      if (!isSupabaseConfigured || !supabase) {
-        setError("Supabase is not configured. Add the Supabase URL and anon key.");
-        setLoading(false);
-        return;
-      }
+      try {
+        if (!isSupabaseConfigured || !supabase) {
+          setError("Supabase is not configured. Add the Supabase URL and anon key.");
+          setLoading(false);
+          return;
+        }
 
-      const { user: sessionUser, profile: appProfile, allowed } = await requireRole(["customer", "admin"]);
-      if (!sessionUser) {
-        router.replace("/customer-login");
-        return;
-      }
+        const { user: sessionUser, profile: appProfile, allowed } = await requireRole(["customer", "admin"]);
+        if (!sessionUser) {
+          router.replace("/customer-login");
+          return;
+        }
 
-      if (!allowed) {
-        router.replace(roleDashboard(appProfile?.role));
-        return;
-      }
+        if (!allowed) {
+          router.replace(roleDashboard(appProfile?.role));
+          return;
+        }
 
-      // fix: dashboard reads the real customer profile row stored in Supabase.
-      const customerProfile = await getCustomerProfile(sessionUser);
-      setUser({
-        avatarUrl: customerProfile?.avatar_url || "",
-        email: customerProfile?.email || sessionUser.email || "",
-        name: customerProfile?.full_name || sessionUser.email || "HopToDrop rider",
-        phone: customerProfile?.phone || ""
-      });
-      setLoading(false);
+        // fix: dashboard reads the real customer profile row stored in Supabase.
+        const customerProfile = await getCustomerProfile(sessionUser);
+        if (!mounted) return;
+        setUser({
+          avatarUrl: customerProfile?.avatar_url || "",
+          email: customerProfile?.email || sessionUser.email || "",
+          name: customerProfile?.full_name || sessionUser.email || "HopToDrop rider",
+          phone: customerProfile?.phone || ""
+        });
+        setError("");
+      } catch (err) {
+        if (!mounted) return;
+        setError(err instanceof Error ? err.message : "Could not load your rider profile.");
+      } finally {
+        if (mounted) setLoading(false);
+      }
     }
 
     loadUser();
+
+    return () => {
+      mounted = false;
+    };
   }, [router]);
 
   async function logout() {
@@ -66,14 +79,45 @@ export default function ClientDashboardPage() {
   }
 
   return (
-    <main className="auth-page dashboard-page">
-      <TopNav />
-      <section className="auth-card dashboard-card">
-        <div className="eyebrow">Rider dashboard</div>
-        <h1>Your rides</h1>
+    <main className="auth-page dashboard-page rider-dashboard-page">
+      <header className="rider-dashboard-top">
+        <Link href="/" aria-label="Back to booking">
+          <ArrowLeft size={22} />
+        </Link>
+        <strong>Rides</strong>
+        <button type="button" onClick={logout} aria-label="Log out">
+          <LogOut size={19} />
+        </button>
+      </header>
 
-        {loading && <p className="status-message">Loading your profile...</p>}
-        {error && <p className="status-message">{error}</p>}
+      <section className="rider-hero-card">
+        <div>
+          <span>HopToDrop</span>
+          <h1>Your ride dashboard</h1>
+          <p>Track active rides and review your transfer history.</p>
+        </div>
+        <CalendarClock size={30} />
+      </section>
+
+      <section className="dashboard-card rider-dashboard-card">
+        {loading && (
+          <div className="rider-loading-card">
+            <span />
+            <div>
+              <strong>Loading your profile</strong>
+              <p>Checking your rider account...</p>
+            </div>
+          </div>
+        )}
+        {error && (
+          <div className="rider-error-card">
+            <strong>Profile could not load</strong>
+            <p>{error}</p>
+            <button className="secondary-btn" type="button" onClick={() => window.location.reload()}>
+              Try again
+            </button>
+          </div>
+        )}
 
         {!loading && user && (
           <>
@@ -97,10 +141,6 @@ export default function ClientDashboardPage() {
                 <MapPinned size={18} />
                 Book a ride
               </Link>
-              <button className="secondary-btn" type="button" onClick={logout}>
-                <LogOut size={18} />
-                Log out
-              </button>
             </div>
 
             <CustomerBookings />

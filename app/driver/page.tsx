@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import DriverApp from "@/components/DriverApp";
-import { ensureUserProfile, getCurrentUserProfile, roleDashboard } from "@/lib/authProfile";
+import { getCurrentUserProfile, roleDashboard } from "@/lib/authProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type DriverProfile = {
@@ -43,8 +43,7 @@ export default function DriverPage() {
       }
 
       if (!appProfile) {
-        await ensureUserProfile(user, "driver");
-        router.replace("/driver/formaplication");
+        router.replace("/login?role=driver");
         return;
       }
 

@@ -8,36 +8,46 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 export default function CustomerBookings() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let customerId = "";
+    let mounted = true;
 
     async function load() {
-      if (!isSupabaseConfigured || !supabase) {
-        setMessage("Connect Supabase to show real ride history.");
-        return;
-      }
+      try {
+        if (!isSupabaseConfigured || !supabase) {
+          setMessage("Connect Supabase to show real ride history.");
+          return;
+        }
 
-      const { user, profile } = await getCurrentUserProfile();
-      customerId = user?.id || "";
-      if (!customerId) {
-        setMessage("Log in to see your ride history.");
-        return;
-      }
-      if (profile?.role !== "customer" && profile?.role !== "admin") {
-        setMessage("This dashboard is only for customer accounts.");
-        return;
-      }
+        const { user, profile } = await getCurrentUserProfile();
+        customerId = user?.id || "";
+        if (!customerId) {
+          setMessage("Log in to see your ride history.");
+          return;
+        }
+        if (profile?.role !== "customer" && profile?.role !== "admin") {
+          setMessage("This dashboard is only for customer accounts.");
+          return;
+        }
 
-      // fix: customer dashboard shows only the logged-in customer's real bookings.
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("*")
-        .eq("customer_id", customerId)
-        .order("created_at", { ascending: false });
+        // fix: customer dashboard shows only the logged-in customer's real bookings.
+        const { data, error } = await supabase
+          .from("bookings")
+          .select("*")
+          .eq("customer_id", customerId)
+          .order("created_at", { ascending: false });
 
-      if (error) setMessage(error.message);
-      if (data) setBookings(data as Booking[]);
+        if (!mounted) return;
+        if (error) setMessage(error.message);
+        if (data) setBookings(data as Booking[]);
+      } catch (err) {
+        if (!mounted) return;
+        setMessage(err instanceof Error ? err.message : "Could not load ride history.");
+      } finally {
+        if (mounted) setLoading(false);
+      }
     }
 
     load();
@@ -65,25 +75,35 @@ export default function CustomerBookings() {
       .subscribe();
 
     return () => {
+      mounted = false;
       client.removeChannel(channel);
     };
   }, []);
 
   return (
     <div className="panel-list ride-history-list">
-      <h2>Ride history</h2>
+      <div className="ride-history-heading">
+        <h2>Ride history</h2>
+        <span>{bookings.length} rides</span>
+      </div>
+      {loading && (
+        <>
+          <div className="ride-skeleton" />
+          <div className="ride-skeleton small" />
+        </>
+      )}
       {bookings.map((booking) => (
         <article className="list-item" key={booking.id}>
           <div>
             <strong>{booking.pickup} to {booking.dropoff}</strong>
-            <p>{booking.ride_class} | {booking.passengers} rider | {booking.payment_method} | EUR {Number(booking.estimated_price).toFixed(2)}</p>
-            {booking.driver_name && <p>{booking.driver_name} | {booking.driver_vehicle}</p>}
-            <p>{new Date(booking.created_at).toLocaleDateString()} | {new Date(booking.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
+            <p>{booking.ride_class} - {booking.passengers} rider - {booking.payment_method} - EUR {Number(booking.estimated_price).toFixed(2)}</p>
+            {booking.driver_name && <p>{booking.driver_name} - {booking.driver_vehicle}</p>}
+            <p>{new Date(booking.created_at).toLocaleDateString()} - {new Date(booking.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
           </div>
           <span className={`status-pill ${booking.status}`}>{booking.status}</span>
         </article>
       ))}
-      {bookings.length === 0 && <p>{message || "No rides yet."}</p>}
+      {!loading && bookings.length === 0 && <p>{message || "No rides yet."}</p>}
     </div>
   );
 }

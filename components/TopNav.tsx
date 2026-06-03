@@ -17,6 +17,7 @@ export default function TopNav() {
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState<SessionRole>(null);
   const [email, setEmail] = useState("");
+  const [authChecked, setAuthChecked] = useState(false);
   const navRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -30,12 +31,20 @@ export default function TopNav() {
   }, []);
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) return;
+    setAuthChecked(false);
+    if (!isSupabaseConfigured || !supabase) {
+      setAuthChecked(true);
+      return;
+    }
 
     async function loadSession() {
-      const { user, profile } = await getCurrentUserProfile();
-      setRole((profile?.role as SessionRole) || null);
-      setEmail(user?.email || "");
+      try {
+        const { user, profile } = await getCurrentUserProfile();
+        setRole((profile?.role as SessionRole) || null);
+        setEmail(user?.email || "");
+      } finally {
+        setAuthChecked(true);
+      }
     }
 
     loadSession();
@@ -133,14 +142,22 @@ export default function TopNav() {
               <button type="button" onClick={logout}>Log out</button>
             </>
           )}
-          {!role && (
+          {!role && email && (
+            <>
+              <span className="menu-account">{email}</span>
+              <Link href="/">Booking</Link>
+              <Link href="/client/dashboard">Dashboard</Link>
+              <button type="button" onClick={logout}>Log out</button>
+            </>
+          )}
+          {!role && !email && authChecked && (
             <>
               <Link href="/">Booking</Link>
               <Link href="/customer-login">Customer Login</Link>
               <Link href="/driver">Driver Login</Link>
-              <Link href="/admin">Admin</Link>
             </>
           )}
+          {!authChecked && <span className="menu-account">Checking account...</span>}
         </nav>
       )}
     </header>
