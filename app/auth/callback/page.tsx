@@ -8,12 +8,24 @@ import { ensureUserProfile, getCurrentUserProfile } from "@/lib/authProfile";
 import { ensureRiderProfile } from "@/lib/riderProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
+function callbackModeFromUrl(searchParams: { get: (name: string) => string | null }) {
+  if (typeof window !== "undefined" && window.location.hostname === "driver.hoptodrop.com") {
+    return "driver";
+  }
+
+  if (searchParams.get("mode") === "driver" || searchParams.get("next")?.includes("driver.hoptodrop.com")) {
+    return "driver";
+  }
+
+  return "customer";
+}
+
 function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [message, setMessage] = useState("Finishing secure sign in...");
   const [error, setError] = useState("");
-  const callbackMode = searchParams.get("mode") === "driver" || searchParams.get("next")?.includes("driver.hoptodrop.com") ? "driver" : "customer";
+  const callbackMode = callbackModeFromUrl(searchParams);
   const authMethod = searchParams.get("method") === "google" ? "Google login" : "Email confirmation";
   const errorBackHref = callbackMode === "driver" ? "https://driver.hoptodrop.com/login" : "/rider/login";
 
