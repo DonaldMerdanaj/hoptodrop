@@ -5,8 +5,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Menu, UserRound, X } from "lucide-react";
 import { clearAccountMode } from "@/lib/accountMode";
-import { getCurrentUserProfile } from "@/lib/authProfile";
+import { ensureUserProfile, getCurrentUserProfile } from "@/lib/authProfile";
 import { driverDestination } from "@/lib/driverRouting";
+import { ensureRiderProfile } from "@/lib/riderProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type SessionRole = "customer" | "driver" | "admin" | null;
@@ -41,6 +42,15 @@ export default function TopNav() {
     async function loadSession() {
       try {
         const { user, profile } = await getCurrentUserProfile();
+        if (user && !profile && !isDriverDomain) {
+          // fix: main rider nav repairs fresh OAuth rider sessions before showing the account icon state.
+          const repairedProfile = await ensureUserProfile(user, "customer");
+          await ensureRiderProfile(user);
+          setRole((repairedProfile?.role as SessionRole) || "customer");
+          setEmail(user.email || "");
+          return;
+        }
+
         setRole((profile?.role as SessionRole) || null);
         setEmail(user?.email || "");
       } finally {
@@ -97,7 +107,15 @@ export default function TopNav() {
       return;
     }
 
-    const nextRole = (profile?.role as SessionRole) || null;
+    let nextRole = (profile?.role as SessionRole) || null;
+    if (!nextRole && !isDriverDomain) {
+      // fix: account icon should open the rider dashboard after login even if the profile row is still being created.
+      const repairedProfile = await ensureUserProfile(user, "customer");
+      await ensureRiderProfile(user);
+      nextRole = (repairedProfile?.role as SessionRole) || "customer";
+      setRole(nextRole);
+      setEmail(user.email || "");
+    }
 
     if (!isDriverDomain && nextRole !== "customer") {
       // fix: hoptodrop.com is rider-only, so the account icon never opens driver/admin portals from the main domain.
