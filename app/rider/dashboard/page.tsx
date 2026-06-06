@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, CalendarClock, LogOut, MapPinned, UserRound } from "lucide-react";
 import RiderBookings from "@/components/rider/RiderBookings";
 import { clearAccountMode } from "@/lib/accountMode";
-import { requireRole, roleDashboard } from "@/lib/authProfile";
+import { ensureUserProfile, getCurrentUserProfile, roleDashboard } from "@/lib/authProfile";
 import { getRiderProfile } from "@/lib/riderProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -34,14 +34,20 @@ export default function RiderDashboardPage() {
           return;
         }
 
-        const { user: sessionUser, profile: appProfile, allowed } = await requireRole(["customer", "admin"]);
+        const { user: sessionUser, profile: appProfile } = await getCurrentUserProfile();
         if (!sessionUser) {
           router.replace("/rider/login");
           return;
         }
 
-        if (!allowed) {
-          router.replace(roleDashboard(appProfile?.role));
+        const effectiveProfile = appProfile || await ensureUserProfile(sessionUser, "customer");
+        if (!effectiveProfile) {
+          router.replace("/rider/login");
+          return;
+        }
+
+        if (effectiveProfile.role !== "customer" && effectiveProfile.role !== "admin") {
+          router.replace(roleDashboard(effectiveProfile.role));
           return;
         }
 

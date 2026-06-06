@@ -16,11 +16,19 @@ function driverCallbackUrl(search: string, hash: string) {
   return `https://driver.hoptodrop.com/auth/callback?${params.toString()}${hash}`;
 }
 
+function riderCallbackUrl(search: string, hash: string) {
+  const params = new URLSearchParams(search);
+  params.set("mode", "customer");
+  params.set("method", params.get("method") || "google");
+  params.set("next", "/rider/dashboard");
+  return `/auth/callback?${params.toString()}${hash}`;
+}
+
 export default function AuthIntentRedirect() {
   useEffect(() => {
-    async function recoverDriverOauthReturn() {
+    async function recoverOauthReturn() {
       const intent = getAuthIntent();
-      if (intent !== "driver" || !isMainHost(window.location.hostname)) return;
+      if (!intent || !isMainHost(window.location.hostname)) return;
 
       const hasOauthPayload =
         window.location.search.includes("code=") ||
@@ -28,22 +36,26 @@ export default function AuthIntentRedirect() {
         window.location.hash.includes("refresh_token=");
 
       if (hasOauthPayload) {
-        // fix: recover driver Google logins if Supabase returns to the main Site URL instead of the driver callback.
-        window.location.replace(driverCallbackUrl(window.location.search, window.location.hash));
+        // fix: recover Google logins if Supabase returns to the Site URL root instead of the expected callback route.
+        window.location.replace(
+          intent === "driver"
+            ? driverCallbackUrl(window.location.search, window.location.hash)
+            : riderCallbackUrl(window.location.search, window.location.hash)
+        );
         return;
       }
 
       const { data } = supabase ? await supabase.auth.getSession() : { data: { session: null } };
       if (data.session?.access_token && data.session.refresh_token) {
         const hash = `#access_token=${encodeURIComponent(data.session.access_token)}&refresh_token=${encodeURIComponent(data.session.refresh_token)}`;
-        window.location.replace(driverCallbackUrl("", hash));
+        window.location.replace(intent === "driver" ? driverCallbackUrl("", hash) : riderCallbackUrl("", hash));
         return;
       }
 
       clearAuthIntent();
     }
 
-    recoverDriverOauthReturn();
+    recoverOauthReturn();
   }, []);
 
   return null;
