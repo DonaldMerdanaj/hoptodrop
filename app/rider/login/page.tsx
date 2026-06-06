@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthForm from "@/components/shared/AuthForm";
 import { clearAccountMode } from "@/lib/accountMode";
-import { getCurrentUserProfile, roleDashboard } from "@/lib/authProfile";
+import { ensureUserProfile, getCurrentUserProfile, roleDashboard } from "@/lib/authProfile";
+import { ensureRiderProfile } from "@/lib/riderProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export default function RiderLoginPage() {
@@ -13,30 +14,54 @@ export default function RiderLoginPage() {
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
+    let mounted = true;
+
     async function routeExistingSession() {
-      if (!isSupabaseConfigured) {
-        setLoading(false);
-        return;
-      }
+      try {
+        if (!isSupabaseConfigured) {
+          if (mounted) setLoading(false);
+          return;
+        }
 
-      const { user, profile } = await getCurrentUserProfile();
-      if (!user || !profile) {
-        setLoading(false);
-        return;
-      }
+        const { user, profile } = await getCurrentUserProfile();
+        if (!user) {
+          if (mounted) setLoading(false);
+          return;
+        }
 
-      if (profile.role === "driver") {
-        if (supabase) await supabase.auth.signOut();
-        clearAccountMode();
-        setNotice("You were signed in as a driver. Log in here with a rider account to book rides.");
-        setLoading(false);
-        return;
-      }
+        if (profile?.role === "driver") {
+          if (supabase) await supabase.auth.signOut();
+          clearAccountMode();
+          if (mounted) {
+            setNotice("You were signed in as a driver. Choose a rider Google account to book rides.");
+            setLoading(false);
+          }
+          return;
+        }
 
-      router.replace(roleDashboard(profile.role));
+        if (!profile) {
+          // fix: fresh rider Google sessions should create the missing customer profile instead of hanging on the login screen.
+          await ensureUserProfile(user, "customer");
+          await ensureRiderProfile(user);
+          router.replace("/rider/dashboard");
+          return;
+        }
+
+        router.replace(roleDashboard(profile.role));
+      } catch (error) {
+        console.error("[rider-login]", error);
+        if (mounted) {
+          setNotice("We could not finish checking your rider session. Please try logging in again.");
+          setLoading(false);
+        }
+      }
     }
 
     routeExistingSession();
+
+    return () => {
+      mounted = false;
+    };
   }, [router]);
 
   return (
