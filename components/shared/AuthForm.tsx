@@ -217,7 +217,8 @@ export default function AuthForm({ role, onAuthChange, redirectPath, title, note
         redirectTo: `${authCallbackOrigin(role)}/auth/callback?next=${encodeURIComponent(authRedirectFor(role, redirectPath))}&mode=${role}&method=google`,
         queryParams: {
           access_type: "offline",
-          prompt: "consent"
+          // fix: force Google's account picker so a driver Gmail is not silently reused on the rider portal.
+          prompt: "select_account consent"
         }
       }
     });

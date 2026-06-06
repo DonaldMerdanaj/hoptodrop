@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { clearAuthIntent, getAuthIntent, setAccountMode, type AccountMode } from "@/lib/accountMode";
+import { clearAccountMode, clearAuthIntent, getAuthIntent, setAccountMode, type AccountMode } from "@/lib/accountMode";
 import { ensureUserProfile, getCurrentUserProfile } from "@/lib/authProfile";
 import { ensureRiderProfile } from "@/lib/riderProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
@@ -100,7 +100,12 @@ function AuthCallbackContent() {
       }
 
       if (profile && profile.role !== callbackMode) {
-        setError(`This account is registered as ${profile.role}. Please use the ${profile.role} portal.`);
+        // fix: wrong-role OAuth attempts should not leave a driver session stuck inside the rider portal, or vice versa.
+        await supabase.auth.signOut();
+        clearAccountMode();
+        clearAuthIntent();
+        const targetPortal = callbackMode === "driver" ? "driver" : "rider";
+        setError(`This Google account is registered as ${profile.role}. Choose a different Google account for the ${targetPortal} portal, or use the ${profile.role} portal.`);
         return;
       }
 
