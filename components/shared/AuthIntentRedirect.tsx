@@ -20,7 +20,7 @@ function riderCallbackUrl(search: string, hash: string) {
   const params = new URLSearchParams(search);
   params.set("mode", "customer");
   params.set("method", params.get("method") || "google");
-  params.set("next", "/rider/dashboard");
+  params.set("next", "/");
   return `/auth/callback?${params.toString()}${hash}`;
 }
 

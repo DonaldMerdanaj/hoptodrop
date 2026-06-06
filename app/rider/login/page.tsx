@@ -43,11 +43,11 @@ export default function RiderLoginPage() {
           // fix: fresh rider Google sessions should create the missing customer profile instead of hanging on the login screen.
           await ensureUserProfile(user, "customer");
           await ensureRiderProfile(user);
-          router.replace("/rider/dashboard");
+          router.replace("/");
           return;
         }
 
-        router.replace(roleDashboard(profile.role));
+        router.replace(profile.role === "customer" ? "/" : roleDashboard(profile.role));
       } catch (error) {
         console.error("[rider-login]", error);
         if (mounted) {
@@ -77,7 +77,7 @@ export default function RiderLoginPage() {
             {notice && <p className="auth-dev-warning">{notice}</p>}
             <AuthForm
               role="customer"
-              redirectPath="/rider/dashboard"
+              redirectPath="/"
               title="Start your ride"
               note="Use your rider account to book transfers, follow your driver, and see ride history."
             />
