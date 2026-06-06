@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import AuthIntentRedirect from "@/components/shared/AuthIntentRedirect";
 import PwaRegister from "@/components/shared/PwaRegister";
 import "./globals.css";
 
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <h1>Open HopToDrop on mobile</h1>
           <p>This ride booking app is designed for phones only. Please open hoptodrop.com from your mobile device.</p>
         </div>
+        <AuthIntentRedirect />
         {children}
         <PwaRegister />
       </body>

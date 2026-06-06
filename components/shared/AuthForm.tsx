@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { clearAccountMode, setAccountMode } from "@/lib/accountMode";
+import { clearAccountMode, setAccountMode, setAuthIntent } from "@/lib/accountMode";
 import { ensureUserProfile, getCurrentUserProfile } from "@/lib/authProfile";
 import { ensureRiderProfile } from "@/lib/riderProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
@@ -134,6 +134,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath, title, note
 
     await preparePortalSession();
     setAccountMode(role);
+    setAuthIntent(role);
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -209,6 +210,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath, title, note
 
     await preparePortalSession();
     setAccountMode(role);
+    setAuthIntent(role);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {

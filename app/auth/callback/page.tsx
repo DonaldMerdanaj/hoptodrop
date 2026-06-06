@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { setAccountMode, type AccountMode } from "@/lib/accountMode";
+import { clearAuthIntent, getAuthIntent, setAccountMode, type AccountMode } from "@/lib/accountMode";
 import { ensureUserProfile, getCurrentUserProfile } from "@/lib/authProfile";
 import { ensureRiderProfile } from "@/lib/riderProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
@@ -12,6 +12,8 @@ function callbackModeFromUrl(searchParams: { get: (name: string) => string | nul
   if (typeof window !== "undefined" && window.location.hostname === "driver.hoptodrop.com") {
     return "driver";
   }
+
+  if (getAuthIntent() === "driver") return "driver";
 
   if (searchParams.get("mode") === "driver" || searchParams.get("next")?.includes("driver.hoptodrop.com")) {
     return "driver";
@@ -41,6 +43,12 @@ function AuthCallbackContent() {
       // fix: driver callbacks always finish on driver.hoptodrop.com, ignoring stale or unsafe next values.
       const next = callbackMode === "driver" ? "https://driver.hoptodrop.com/" : searchParams.get("next") || "/rider/dashboard";
       const oauthError = searchParams.get("error_description") || searchParams.get("error");
+
+      if (callbackMode === "driver" && window.location.hostname !== "driver.hoptodrop.com" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
+        // fix: if Supabase falls back to the main Site URL, move the OAuth code/tokens to the driver origin before session exchange.
+        window.location.replace(`https://driver.hoptodrop.com/auth/callback${window.location.search}${window.location.hash}`);
+        return;
+      }
 
       if (oauthError) {
         setError(oauthError);
@@ -99,6 +107,7 @@ function AuthCallbackContent() {
       if (!profile) await ensureUserProfile(userData.user, callbackMode as "customer" | "driver");
       // fix: OAuth/email callback records whether the user entered customer or driver mode.
       setAccountMode(callbackMode as AccountMode);
+      clearAuthIntent();
       if (callbackMode === "customer") {
         // fix: rider profile creation depends on the auth mode, not a redirect URL that may cross domains.
         await ensureRiderProfile(userData.user);
