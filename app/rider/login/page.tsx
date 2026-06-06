@@ -10,7 +10,6 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export default function RiderLoginPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -19,13 +18,11 @@ export default function RiderLoginPage() {
     async function routeExistingSession() {
       try {
         if (!isSupabaseConfigured) {
-          if (mounted) setLoading(false);
           return;
         }
 
         const { user, profile } = await getCurrentUserProfile();
         if (!user) {
-          if (mounted) setLoading(false);
           return;
         }
 
@@ -34,7 +31,6 @@ export default function RiderLoginPage() {
           clearAccountMode();
           if (mounted) {
             setNotice("You were signed in as a driver. Choose a rider Google account to book rides.");
-            setLoading(false);
           }
           return;
         }
@@ -52,7 +48,6 @@ export default function RiderLoginPage() {
         console.error("[rider-login]", error);
         if (mounted) {
           setNotice("We could not finish checking your rider session. Please try logging in again.");
-          setLoading(false);
         }
       }
     }
@@ -71,18 +66,14 @@ export default function RiderLoginPage() {
         <small>Book rides across Albania</small>
       </header>
       <section className="auth-entry-card">
-        {loading && <p className="status-message">Checking rider account...</p>}
-        {!loading && (
-          <>
-            {notice && <p className="auth-dev-warning">{notice}</p>}
-            <AuthForm
-              role="customer"
-              redirectPath="/"
-              title="Start your ride"
-              note="Use your rider account to book transfers, follow your driver, and see ride history."
-            />
-          </>
-        )}
+        {/* fix: keep rider login usable while the session check runs silently in the background. */}
+        {notice && <p className="auth-dev-warning">{notice}</p>}
+        <AuthForm
+          role="customer"
+          redirectPath="/"
+          title="Start your ride"
+          note="Use your rider account to book transfers, follow your driver, and see ride history."
+        />
       </section>
     </main>
   );
