@@ -12,6 +12,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type DriverProfile = {
   approval_status?: "draft" | "submitted" | "approved" | "rejected";
+  rejection_reason?: string | null;
 };
 
 export default function DriverApplicationPage() {
@@ -47,11 +48,12 @@ export default function DriverApplicationPage() {
 
       const { data: profileData } = await supabase
         .from("driver_profiles")
-        .select("approval_status")
+        .select("approval_status,rejection_reason")
         .eq("id", user.id)
         .maybeSingle();
 
-      if (profileData?.approval_status === "approved") {
+      const editingApprovedProfile = new URLSearchParams(window.location.search).get("edit") === "1";
+      if (profileData?.approval_status === "approved" && !editingApprovedProfile) {
         router.replace(await driverDestination(user.id));
         return;
       }
@@ -78,6 +80,9 @@ export default function DriverApplicationPage() {
           <div className="eyebrow">Driver application</div>
           <h1>Complete application</h1>
           <p>{profile?.approval_status === "submitted" ? "Your application is waiting for admin approval." : "Fill this in once. You can go online after approval."}</p>
+          {profile?.approval_status === "rejected" && profile.rejection_reason && (
+            <p className="status-message">Rejection reason: {profile.rejection_reason}</p>
+          )}
         </div>
         <button className="secondary-btn driver-logout-btn" type="button" onClick={signOut}>
           <LogOut size={17} />

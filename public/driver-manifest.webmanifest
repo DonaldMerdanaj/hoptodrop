@@ -1,0 +1,21 @@
+{
+  "name": "HopToDrop Driver",
+  "short_name": "HTD Driver",
+  "description": "Receive and manage HopToDrop trips.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#111827",
+  "categories": ["business", "navigation"],
+  "icons": [
+    {
+      "src": "/driver-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

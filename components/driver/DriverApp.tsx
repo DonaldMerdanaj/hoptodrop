@@ -129,9 +129,30 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
     if (tripHistory) setHistory(tripHistory as Booking[]);
   }, []);
 
+  const loadPendingRequest = useCallback(async () => {
+    if (!supabase) return;
+    const { data } = await supabase
+      .from("bookings")
+      .select("*")
+      .eq("status", "pending")
+      .is("driver_id", null)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (data) {
+      setIncoming(data as Booking);
+      setCountdown(15);
+    }
+  }, []);
+
   useEffect(() => {
     loadDriverData();
   }, [loadDriverData]);
+
+  useEffect(() => {
+    if (status === "online" && !activeTrip) loadPendingRequest();
+  }, [activeTrip, loadPendingRequest, status]);
 
   useEffect(() => {
     activeTripRef.current = activeTrip;
@@ -153,7 +174,6 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
       if (!mounted) return;
       setLocationPermission(permission.state as LocationPermission);
       permission.onchange = () => setLocationPermission(permission.state as LocationPermission);
-      if (permission.state === "granted") saveLocation("offline", false);
     }).catch(() => setLocationPermission("prompt"));
 
     return () => {
@@ -278,7 +298,7 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
       setLocationPermission("granted");
       setMessage("");
       return true;
-    } catch (error) {
+    } catch {
       setLocationPermission("denied");
       if (showErrors) {
         setMessage("Location is required to go online. Allow location access in your browser settings, then try again.");
@@ -323,6 +343,7 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
     if (nextStatus === "online" || nextStatus === "busy") {
       locationTimerRef.current = window.setInterval(() => saveLocation(nextStatus), 5000);
     }
+    if (nextStatus === "online") await loadPendingRequest();
   }
 
   async function signOut() {
@@ -337,29 +358,18 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
     const { user } = await getCurrentUserProfile();
     if (!user) return;
 
-    const vehicle = `${profile.vehicle_make} ${profile.vehicle_model} ${profile.license_plate}`.trim();
-    const { data, error } = await supabase
-      .from("bookings")
-      .update({
-        status: "accepted",
-        driver_id: user.id,
-        driver_name: profile.full_name,
-        driver_vehicle: vehicle,
-        accepted_at: new Date().toISOString()
-      })
-      .eq("id", incoming.id)
-      .is("driver_id", null)
-      .eq("status", "pending")
-      .select("*")
-      .maybeSingle();
+    const { data, error } = await supabase.rpc("accept_booking", {
+      booking_id_input: incoming.id
+    });
+    const accepted = Array.isArray(data) ? data[0] : data;
 
     if (error) setMessage(error.message);
-    else if (!data) {
+    else if (!accepted) {
       setMessage("This ride was already accepted by another driver.");
       setIncoming(null);
     }
     else {
-      setActiveTrip(data as Booking);
+      setActiveTrip(accepted as Booking);
       setIncoming(null);
       await setDriverStatus("busy");
     }
@@ -372,16 +382,16 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
 
   async function updateTrip(status: "arrived" | "started" | "completed") {
     if (!activeTrip || !supabase) return;
-    const column = status === "arrived" ? "arrived_at" : status === "started" ? "started_at" : "completed_at";
-    const { error } = await supabase
-      .from("bookings")
-      .update({ status, [column]: new Date().toISOString() })
-      .eq("id", activeTrip.id)
-      .eq("driver_id", profile.id);
+    const { data, error } = await supabase.rpc("progress_booking", {
+      booking_id_input: activeTrip.id,
+      next_status_input: status
+    });
+    const progressed = Array.isArray(data) ? data[0] : data;
 
     if (error) setMessage(error.message);
+    else if (!progressed) setMessage("This trip could not be updated. Refresh and try again.");
     else {
-      const nextTrip = { ...activeTrip, status } as Booking;
+      const nextTrip = progressed as Booking;
       if (status === "completed") {
         setHistory((current) => [nextTrip, ...current]);
         setActiveTrip(null);
@@ -491,7 +501,7 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
             <ProfileRow label="Registration" value={profile.vehicle_registration_url ? "Uploaded" : "Missing"} />
             <ProfileRow label="Insurance" value={profile.insurance_url ? "Uploaded" : "Missing"} />
           </div>
-          <a className="primary-btn" href="/driver/application">Edit profile</a>
+          <a className="primary-btn" href="/driver/application?edit=1">Edit profile</a>
         </section>
       )}
 

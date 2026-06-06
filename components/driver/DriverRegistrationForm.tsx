@@ -48,6 +48,7 @@ const emptyForm: DriverForm = {
 
 export default function DriverRegistrationForm() {
   const [form, setForm] = useState<DriverForm>(emptyForm);
+  const [files, setFiles] = useState<Partial<Record<"profile_photo_url" | "driver_license_url" | "vehicle_registration_url" | "insurance_url", File>>>({});
   const [status, setStatus] = useState("draft");
   const [message, setMessage] = useState("");
 
@@ -92,13 +93,28 @@ export default function DriverRegistrationForm() {
 
     await ensureUserProfile(user, "driver");
 
+    const uploaded = { ...form };
+    for (const [field, file] of Object.entries(files)) {
+      if (!file) continue;
+      const extension = file.name.split(".").pop()?.toLowerCase() || "bin";
+      const path = `${user.id}/${field}-${Date.now()}.${extension}`;
+      const { error: uploadError } = await supabase.storage
+        .from("driver-documents")
+        .upload(path, file, { upsert: true });
+      if (uploadError) {
+        setMessage(`Could not upload ${file.name}: ${uploadError.message}`);
+        return;
+      }
+      uploaded[field as keyof DriverForm] = path;
+    }
+
     const payload = {
       id: user.id,
       email: user.email,
-      ...form,
+      ...uploaded,
       vehicle_year: Number(form.vehicle_year || 0),
       seats: Number(form.seats || 4),
-      approval_status: "submitted",
+      approval_status: status === "approved" ? "approved" : "submitted",
       submitted_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -106,8 +122,9 @@ export default function DriverRegistrationForm() {
     const { error } = await supabase.from("driver_profiles").upsert(payload);
     if (error) setMessage(error.message);
     else {
-      setStatus("submitted");
-      setMessage("Registration submitted. Dispatch will review and approve your account.");
+      const nextStatus = status === "approved" ? "approved" : "submitted";
+      setStatus(nextStatus);
+      setMessage(nextStatus === "approved" ? "Driver profile updated." : "Registration submitted. Dispatch will review and approve your account.");
     }
   }
 
@@ -147,10 +164,10 @@ export default function DriverRegistrationForm() {
 
       <div className="form-section">
         <h2>Documents</h2>
-        <label><span>Profile photo URL</span><input type="url" value={form.profile_photo_url} onChange={(e) => updateField("profile_photo_url", e.target.value)} /></label>
-        <label><span>Driver license document URL</span><input type="url" value={form.driver_license_url} onChange={(e) => updateField("driver_license_url", e.target.value)} required /></label>
-        <label><span>Vehicle registration document URL</span><input type="url" value={form.vehicle_registration_url} onChange={(e) => updateField("vehicle_registration_url", e.target.value)} required /></label>
-        <label><span>Insurance document URL</span><input type="url" value={form.insurance_url} onChange={(e) => updateField("insurance_url", e.target.value)} required /></label>
+        <label><span>Profile photo</span><input type="file" accept="image/*" onChange={(e) => setFiles((current) => ({ ...current, profile_photo_url: e.target.files?.[0] }))} /></label>
+        <label><span>Driver license document</span><input type="file" accept="image/*,.pdf" required={!form.driver_license_url} onChange={(e) => setFiles((current) => ({ ...current, driver_license_url: e.target.files?.[0] }))} /></label>
+        <label><span>Vehicle registration document</span><input type="file" accept="image/*,.pdf" required={!form.vehicle_registration_url} onChange={(e) => setFiles((current) => ({ ...current, vehicle_registration_url: e.target.files?.[0] }))} /></label>
+        <label><span>Insurance document</span><input type="file" accept="image/*,.pdf" required={!form.insurance_url} onChange={(e) => setFiles((current) => ({ ...current, insurance_url: e.target.files?.[0] }))} /></label>
       </div>
 
       <div className="form-section">
@@ -158,7 +175,7 @@ export default function DriverRegistrationForm() {
         <label><span>IBAN</span><input value={form.iban} onChange={(e) => updateField("iban", e.target.value.toUpperCase())} required /></label>
       </div>
 
-      <button className="primary-btn" type="submit">Submit driver registration</button>
+      <button className="primary-btn" type="submit">{status === "approved" ? "Update driver profile" : "Submit driver registration"}</button>
       {message && <p className="status-message">{message}</p>}
     </form>
   );

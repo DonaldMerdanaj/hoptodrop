@@ -74,6 +74,13 @@ export default function DriverPage() {
         return;
       }
 
+      if (data.profile_photo_url) {
+        const { data: signedPhoto } = await supabase.storage
+          .from("driver-documents")
+          .createSignedUrl(data.profile_photo_url, 3600);
+        if (signedPhoto?.signedUrl) data.profile_photo_url = signedPhoto.signedUrl;
+      }
+
       setProfile(data as DriverProfile);
     }
 

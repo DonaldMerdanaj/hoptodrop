@@ -36,6 +36,7 @@ export default function LiveMap({ initialRiderLocation }: { initialRiderLocation
   const markerRefs = useRef<any[]>([]);
   const riderMarkerRef = useRef<any>(null);
   const directionsRef = useRef<any>(null);
+  const activeDriverMarkerRef = useRef<any>(null);
   const [drivers, setDrivers] = useState<DriverLocation[]>([]);
   const [route, setRoute] = useState({ pickup: defaultPickup, dropoff: defaultDropoff });
   const [riderLocation, setRiderLocation] = useState<RoutePoint | null>(null);
@@ -101,11 +102,39 @@ export default function LiveMap({ initialRiderLocation }: { initialRiderLocation
       }
     }
 
+    function onActiveDriverLocation(event: Event) {
+      const detail = (event as CustomEvent<{ lat: number; lng: number }>).detail;
+      if (!detail || typeof detail.lat !== "number" || typeof detail.lng !== "number") return;
+      const maps = window.google?.maps;
+      if (!maps || !mapRef.current) return;
+
+      if (!activeDriverMarkerRef.current) {
+        activeDriverMarkerRef.current = new maps.Marker({
+          map: mapRef.current,
+          position: detail,
+          title: "Your driver",
+          label: { text: "TAXI", color: "#ffffff", fontSize: "9px", fontWeight: "900" },
+          icon: pinIcon(maps, "#16a34a", 15)
+        });
+      } else {
+        activeDriverMarkerRef.current.setPosition(detail);
+      }
+    }
+
+    function clearActiveDriver() {
+      activeDriverMarkerRef.current?.setMap(null);
+      activeDriverMarkerRef.current = null;
+    }
+
     window.addEventListener("taxi-route-preview", onPreview);
     window.addEventListener("taxi-rider-location", onRiderLocation);
+    window.addEventListener("taxi-active-driver-location", onActiveDriverLocation);
+    window.addEventListener("taxi-clear-active-driver", clearActiveDriver);
     return () => {
       window.removeEventListener("taxi-route-preview", onPreview);
       window.removeEventListener("taxi-rider-location", onRiderLocation);
+      window.removeEventListener("taxi-active-driver-location", onActiveDriverLocation);
+      window.removeEventListener("taxi-clear-active-driver", clearActiveDriver);
     };
   }, []);
 

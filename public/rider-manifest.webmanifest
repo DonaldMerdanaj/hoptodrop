@@ -1,16 +1,15 @@
 {
-  "name": "HopToDrop",
+  "name": "HopToDrop Rider",
   "short_name": "HopToDrop",
   "description": "Book live taxi rides across Albania.",
   "id": "/",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#f8fafc",
   "theme_color": "#111827",
-  "categories": ["travel", "navigation", "business"],
+  "categories": ["travel", "navigation"],
   "icons": [
     {
       "src": "/icon.svg",

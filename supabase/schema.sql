@@ -122,6 +122,13 @@ create table if not exists public.driver_profiles (
   updated_at timestamptz not null default now()
 );
 
+alter table public.driver_profiles
+  add column if not exists status text not null default 'offline';
+
+alter table public.driver_profiles drop constraint if exists driver_profiles_status_check;
+alter table public.driver_profiles add constraint driver_profiles_status_check
+  check (status in ('online','offline','busy'));
+
 create table if not exists public.booking_route_points (
   id uuid primary key default uuid_generate_v4(),
   booking_id uuid not null references public.bookings(id) on delete cascade,
@@ -177,6 +184,11 @@ on public.bookings for select
 to authenticated
 using (
   public.current_role() = 'driver'
+  and exists (
+    select 1 from public.driver_profiles
+    where driver_profiles.id = auth.uid()
+    and driver_profiles.approval_status = 'approved'
+  )
   and (
     status = 'pending'
     or driver_id = auth.uid()
@@ -188,22 +200,6 @@ on public.bookings for all
 to authenticated
 using (public.is_admin())
 with check (public.is_admin());
-
-create policy "Drivers can accept and progress own bookings"
-on public.bookings for update
-to authenticated
-using (
-  public.current_role() = 'driver'
-  and (
-    (status = 'pending' and driver_id is null)
-    or driver_id = auth.uid()
-  )
-)
-with check (
-  public.current_role() = 'driver'
-  and driver_id = auth.uid()
-  and status in ('accepted','arrived','started','completed','cancelled')
-);
 
 drop policy if exists "Users can read own app profile" on public.profiles;
 drop policy if exists "Users can create own app profile" on public.profiles;
@@ -302,25 +298,56 @@ using (public.is_admin())
 with check (public.is_admin());
 
 drop policy if exists "Anyone can read online drivers" on public.driver_locations;
+drop policy if exists "Authenticated users can read relevant drivers" on public.driver_locations;
 drop policy if exists "Drivers can insert own location" on public.driver_locations;
 drop policy if exists "Drivers can update own location" on public.driver_locations;
 
 create policy "Anyone can read online drivers"
 on public.driver_locations for select
-to anon, authenticated
+to anon
 -- fix: only expose active online drivers, never offline last-known GPS positions.
 using (status = 'online');
+
+create policy "Authenticated users can read relevant drivers"
+on public.driver_locations for select
+to authenticated
+using (
+  status = 'online'
+  or id = auth.uid()
+  or exists (
+    select 1 from public.bookings
+    where bookings.driver_id = driver_locations.id
+    and bookings.customer_id = auth.uid()
+    and bookings.status in ('accepted','arrived','started')
+  )
+);
 
 create policy "Drivers can insert own location"
 on public.driver_locations for insert
 to authenticated
-with check (auth.uid() = id and public.current_role() = 'driver');
+with check (
+  auth.uid() = id
+  and public.current_role() = 'driver'
+  and exists (
+    select 1 from public.driver_profiles
+    where driver_profiles.id = auth.uid()
+    and driver_profiles.approval_status = 'approved'
+  )
+);
 
 create policy "Drivers can update own location"
 on public.driver_locations for update
 to authenticated
 using (auth.uid() = id and public.current_role() = 'driver')
-with check (auth.uid() = id and public.current_role() = 'driver');
+with check (
+  auth.uid() = id
+  and public.current_role() = 'driver'
+  and exists (
+    select 1 from public.driver_profiles
+    where driver_profiles.id = auth.uid()
+    and driver_profiles.approval_status = 'approved'
+  )
+);
 
 drop policy if exists "Drivers can read own profile" on public.driver_profiles;
 drop policy if exists "Drivers can create own profile" on public.driver_profiles;
@@ -369,6 +396,93 @@ drop trigger if exists set_booking_auth_ids_before_insert on public.bookings;
 create trigger set_booking_auth_ids_before_insert
 before insert on public.bookings
 for each row execute function public.set_booking_auth_ids();
+
+create or replace function public.accept_booking(booking_id_input uuid)
+returns setof public.bookings
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  driver public.driver_profiles;
+begin
+  select * into driver
+  from public.driver_profiles
+  where id = auth.uid()
+    and approval_status = 'approved';
+
+  if driver.id is null or public.current_role() <> 'driver' then
+    raise exception 'Approved driver account required';
+  end if;
+
+  if exists (
+    select 1 from public.bookings
+    where driver_id = auth.uid()
+      and status in ('accepted','arrived','started')
+  ) then
+    raise exception 'Complete the active trip before accepting another';
+  end if;
+
+  return query
+  update public.bookings
+  set
+    status = 'accepted',
+    driver_id = auth.uid(),
+    driver_name = driver.full_name,
+    driver_vehicle = trim(concat_ws(' ', driver.vehicle_make, driver.vehicle_model, driver.license_plate)),
+    accepted_at = now()
+  where id = booking_id_input
+    and status = 'pending'
+    and driver_id is null
+  returning *;
+end;
+$$;
+
+create or replace function public.progress_booking(booking_id_input uuid, next_status_input text)
+returns setof public.bookings
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_status text;
+begin
+  if public.current_role() <> 'driver' or not exists (
+    select 1 from public.driver_profiles
+    where id = auth.uid() and approval_status = 'approved'
+  ) then
+    raise exception 'Approved driver account required';
+  end if;
+
+  select status into current_status
+  from public.bookings
+  where id = booking_id_input and driver_id = auth.uid()
+  for update;
+
+  if not (
+    (current_status = 'accepted' and next_status_input = 'arrived')
+    or (current_status = 'arrived' and next_status_input = 'started')
+    or (current_status = 'started' and next_status_input = 'completed')
+  ) then
+    raise exception 'Invalid booking status transition';
+  end if;
+
+  return query
+  update public.bookings
+  set
+    status = next_status_input,
+    arrived_at = case when next_status_input = 'arrived' then now() else arrived_at end,
+    started_at = case when next_status_input = 'started' then now() else started_at end,
+    completed_at = case when next_status_input = 'completed' then now() else completed_at end
+  where id = booking_id_input and driver_id = auth.uid()
+  returning *;
+end;
+$$;
+
+revoke all on function public.accept_booking(uuid) from public;
+revoke all on function public.progress_booking(uuid, text) from public;
+grant execute on function public.accept_booking(uuid) to authenticated;
+grant execute on function public.progress_booking(uuid, text) to authenticated;
 
 do $$
 begin

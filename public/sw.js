@@ -1,5 +1,9 @@
-const CACHE_NAME = "hoptodrop-v2";
-const APP_SHELL = ["/", "/driver", "/login?role=driver", "/offline.html", "/manifest.webmanifest", "/icon.svg", "/maskable-icon.svg", "/driver-icon.svg"];
+const DRIVER_HOST = "driver.hoptodrop.com";
+const isDriverApp = self.location.hostname === DRIVER_HOST;
+const CACHE_NAME = `hoptodrop-${isDriverApp ? "driver" : "rider"}-v3`;
+const APP_SHELL = isDriverApp
+  ? ["/", "/login", "/application", "/offline.html", "/manifest.webmanifest", "/driver-icon.svg"]
+  : ["/", "/rider/login", "/rider/dashboard", "/offline.html", "/manifest.webmanifest", "/icon.svg", "/maskable-icon.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

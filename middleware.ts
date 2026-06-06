@@ -112,6 +112,12 @@ export async function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
   const hostname = request.nextUrl.hostname.toLowerCase();
 
+  if (pathname === "/manifest.webmanifest") {
+    const manifest = request.nextUrl.clone();
+    manifest.pathname = hostname === driverHost ? "/driver-manifest.webmanifest" : "/rider-manifest.webmanifest";
+    return NextResponse.rewrite(manifest);
+  }
+
   if (isAsset(pathname) || isLocalHost(hostname)) return NextResponse.next();
 
   // Pass 1: Domain isolation. Driver domain keeps clean URLs while targeting app/driver internally.

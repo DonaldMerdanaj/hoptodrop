@@ -73,6 +73,20 @@ create index if not exists booking_route_points_booking_recorded_idx on public.b
 create index if not exists trip_history_driver_created_idx on public.trip_history(driver_id, created_at desc);
 create index if not exists earnings_driver_earned_idx on public.earnings(driver_id, earned_on desc);
 
+delete from public.trip_history older
+using public.trip_history newer
+where older.booking_id = newer.booking_id
+  and older.ctid < newer.ctid;
+
+delete from public.earnings older
+using public.earnings newer
+where older.booking_id = newer.booking_id
+  and older.booking_id is not null
+  and older.ctid < newer.ctid;
+
+create unique index if not exists trip_history_booking_unique on public.trip_history(booking_id);
+create unique index if not exists earnings_booking_unique on public.earnings(booking_id) where booking_id is not null;
+
 alter table public.profiles enable row level security;
 alter table public.driver_profiles enable row level security;
 alter table public.driver_locations enable row level security;
@@ -80,6 +94,36 @@ alter table public.bookings enable row level security;
 alter table public.booking_route_points enable row level security;
 alter table public.trip_history enable row level security;
 alter table public.earnings enable row level security;
+
+insert into storage.buckets (id, name, public)
+values ('driver-documents', 'driver-documents', false)
+on conflict (id) do update set public = false;
+
+drop policy if exists "Drivers upload own documents" on storage.objects;
+drop policy if exists "Drivers read own documents" on storage.objects;
+drop policy if exists "Admins read driver documents" on storage.objects;
+
+create policy "Drivers upload own documents"
+on storage.objects for insert
+to authenticated
+with check (
+  bucket_id = 'driver-documents'
+  and (storage.foldername(name))[1] = auth.uid()::text
+  and public.current_role() = 'driver'
+);
+
+create policy "Drivers read own documents"
+on storage.objects for select
+to authenticated
+using (
+  bucket_id = 'driver-documents'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+create policy "Admins read driver documents"
+on storage.objects for select
+to authenticated
+using (bucket_id = 'driver-documents' and public.is_admin());
 
 drop policy if exists "Users can read own app profile" on public.profiles;
 drop policy if exists "Users can create own app profile" on public.profiles;
@@ -143,26 +187,57 @@ using (public.is_admin())
 with check (public.is_admin());
 
 drop policy if exists "Anyone can read online drivers" on public.driver_locations;
+drop policy if exists "Authenticated users can read relevant drivers" on public.driver_locations;
 drop policy if exists "Drivers can insert own location" on public.driver_locations;
 drop policy if exists "Drivers can update own location" on public.driver_locations;
 drop policy if exists "Admins can manage driver locations" on public.driver_locations;
 
 create policy "Anyone can read online drivers"
 on public.driver_locations for select
-to anon, authenticated
+to anon
 -- fix: only expose active online drivers, never offline last-known GPS positions.
 using (status = 'online');
+
+create policy "Authenticated users can read relevant drivers"
+on public.driver_locations for select
+to authenticated
+using (
+  status = 'online'
+  or id = auth.uid()
+  or exists (
+    select 1 from public.bookings
+    where bookings.driver_id = driver_locations.id
+    and bookings.customer_id = auth.uid()
+    and bookings.status in ('accepted','arrived','started')
+  )
+);
 
 create policy "Drivers can insert own location"
 on public.driver_locations for insert
 to authenticated
-with check (auth.uid() = id and public.current_role() = 'driver');
+with check (
+  auth.uid() = id
+  and public.current_role() = 'driver'
+  and exists (
+    select 1 from public.driver_profiles
+    where driver_profiles.id = auth.uid()
+    and driver_profiles.approval_status = 'approved'
+  )
+);
 
 create policy "Drivers can update own location"
 on public.driver_locations for update
 to authenticated
 using (auth.uid() = id and public.current_role() = 'driver')
-with check (auth.uid() = id and public.current_role() = 'driver');
+with check (
+  auth.uid() = id
+  and public.current_role() = 'driver'
+  and exists (
+    select 1 from public.driver_profiles
+    where driver_profiles.id = auth.uid()
+    and driver_profiles.approval_status = 'approved'
+  )
+);
 
 create policy "Admins can manage driver locations"
 on public.driver_locations for all
@@ -196,20 +271,12 @@ on public.bookings for select
 to authenticated
 using (
   public.current_role() = 'driver'
+  and exists (
+    select 1 from public.driver_profiles
+    where driver_profiles.id = auth.uid()
+    and driver_profiles.approval_status = 'approved'
+  )
   and (status = 'pending' or driver_id = auth.uid())
-);
-
-create policy "Drivers can accept and progress own bookings"
-on public.bookings for update
-to authenticated
-using (
-  public.current_role() = 'driver'
-  and ((status = 'pending' and driver_id is null) or driver_id = auth.uid())
-)
-with check (
-  public.current_role() = 'driver'
-  and driver_id = auth.uid()
-  and status in ('accepted','arrived','started','completed','cancelled')
 );
 
 create policy "Admins can manage bookings"
@@ -293,6 +360,93 @@ to authenticated
 using (public.is_admin())
 with check (public.is_admin());
 
+create or replace function public.accept_booking(booking_id_input uuid)
+returns setof public.bookings
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  driver public.driver_profiles;
+begin
+  select * into driver
+  from public.driver_profiles
+  where id = auth.uid()
+    and approval_status = 'approved';
+
+  if driver.id is null or public.current_role() <> 'driver' then
+    raise exception 'Approved driver account required';
+  end if;
+
+  if exists (
+    select 1 from public.bookings
+    where driver_id = auth.uid()
+      and status in ('accepted','arrived','started')
+  ) then
+    raise exception 'Complete the active trip before accepting another';
+  end if;
+
+  return query
+  update public.bookings
+  set
+    status = 'accepted',
+    driver_id = auth.uid(),
+    driver_name = driver.full_name,
+    driver_vehicle = trim(concat_ws(' ', driver.vehicle_make, driver.vehicle_model, driver.license_plate)),
+    accepted_at = now()
+  where id = booking_id_input
+    and status = 'pending'
+    and driver_id is null
+  returning *;
+end;
+$$;
+
+create or replace function public.progress_booking(booking_id_input uuid, next_status_input text)
+returns setof public.bookings
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_status text;
+begin
+  if public.current_role() <> 'driver' or not exists (
+    select 1 from public.driver_profiles
+    where id = auth.uid() and approval_status = 'approved'
+  ) then
+    raise exception 'Approved driver account required';
+  end if;
+
+  select status into current_status
+  from public.bookings
+  where id = booking_id_input and driver_id = auth.uid()
+  for update;
+
+  if not (
+    (current_status = 'accepted' and next_status_input = 'arrived')
+    or (current_status = 'arrived' and next_status_input = 'started')
+    or (current_status = 'started' and next_status_input = 'completed')
+  ) then
+    raise exception 'Invalid booking status transition';
+  end if;
+
+  return query
+  update public.bookings
+  set
+    status = next_status_input,
+    arrived_at = case when next_status_input = 'arrived' then now() else arrived_at end,
+    started_at = case when next_status_input = 'started' then now() else started_at end,
+    completed_at = case when next_status_input = 'completed' then now() else completed_at end
+  where id = booking_id_input and driver_id = auth.uid()
+  returning *;
+end;
+$$;
+
+revoke all on function public.accept_booking(uuid) from public;
+revoke all on function public.progress_booking(uuid, text) from public;
+grant execute on function public.accept_booking(uuid) to authenticated;
+grant execute on function public.progress_booking(uuid, text) to authenticated;
+
 create or replace function public.finalize_driver_trip()
 returns trigger
 language plpgsql
@@ -307,7 +461,8 @@ begin
 
     if new.status = 'completed' then
       insert into public.earnings (driver_id, booking_id, amount, earned_on)
-      values (new.driver_id, new.id, coalesce(new.estimated_price, 0), current_date);
+      values (new.driver_id, new.id, coalesce(new.estimated_price, 0), current_date)
+      on conflict do nothing;
     end if;
   end if;
 

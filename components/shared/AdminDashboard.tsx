@@ -16,6 +16,9 @@ type DriverProfile = {
   vehicle_make: string;
   vehicle_model: string;
   license_plate: string;
+  driver_license_url: string | null;
+  vehicle_registration_url: string | null;
+  insurance_url: string | null;
   approval_status: "draft" | "submitted" | "approved" | "rejected";
 };
 
@@ -43,7 +46,7 @@ export default function AdminDashboard() {
     }
 
     const { data: bookingData } = await supabase.from("bookings").select("*").order("created_at", { ascending: false });
-    const { data: driverData } = await supabase.from("driver_profiles").select("id, full_name, phone, city, vehicle_make, vehicle_model, license_plate, approval_status").order("submitted_at", { ascending: false });
+    const { data: driverData } = await supabase.from("driver_profiles").select("id, full_name, phone, city, vehicle_make, vehicle_model, license_plate, driver_license_url, vehicle_registration_url, insurance_url, approval_status").order("submitted_at", { ascending: false });
 
     if (bookingData) setBookings(bookingData as Booking[]);
     if (driverData) setDrivers(driverData as DriverProfile[]);
@@ -62,10 +65,16 @@ export default function AdminDashboard() {
 
   async function updateDriver(id: string, approval_status: DriverProfile["approval_status"]) {
     if (!isSupabaseConfigured || !supabase) return;
+    const rejectionReason = approval_status === "rejected"
+      ? window.prompt("Reason for rejection (shown to the driver):")?.trim()
+      : null;
+    if (approval_status === "rejected" && !rejectionReason) return;
+
     const { error } = await supabase
       .from("driver_profiles")
       .update({
         approval_status,
+        rejection_reason: rejectionReason,
         approved_at: approval_status === "approved" ? new Date().toISOString() : null,
         updated_at: new Date().toISOString()
       })
@@ -73,6 +82,16 @@ export default function AdminDashboard() {
 
     if (error) setMessage(error.message);
     else load();
+  }
+
+  async function openDocument(path: string | null) {
+    if (!path || !supabase) return;
+    const { data, error } = await supabase.storage.from("driver-documents").createSignedUrl(path, 300);
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -98,6 +117,11 @@ export default function AdminDashboard() {
                 <p>{driver.city} | {driver.phone}</p>
                 <p>{driver.vehicle_make} {driver.vehicle_model} | {driver.license_plate}</p>
                 <span className={`status-pill ${driver.approval_status}`}>{driver.approval_status}</span>
+                <div className="admin-actions">
+                  <button className="secondary-btn compact-btn" onClick={() => openDocument(driver.driver_license_url)}>License</button>
+                  <button className="secondary-btn compact-btn" onClick={() => openDocument(driver.vehicle_registration_url)}>Registration</button>
+                  <button className="secondary-btn compact-btn" onClick={() => openDocument(driver.insurance_url)}>Insurance</button>
+                </div>
               </div>
               <div className="admin-actions">
                 <button className="secondary-btn compact-btn" onClick={() => updateDriver(driver.id, "approved")}>Approve</button>
