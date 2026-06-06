@@ -96,7 +96,10 @@ async function enforceRole(request: NextRequest, response: NextResponse, interna
   }
 
   if (productionHosts.has(hostname) && isRiderProtectedPath(request.nextUrl.pathname)) {
-    if (!session?.user) return NextResponse.redirect(mainUrl(request, "/rider/login"));
+    if (!session?.user) {
+      // fix: Supabase browser auth is stored client-side here, so let rider pages load and enforce auth in the client guard.
+      return response;
+    }
     if (role === "driver") return NextResponse.redirect(driverUrl(request, "/"));
     if (role === "admin") {
       const next = request.nextUrl.clone();

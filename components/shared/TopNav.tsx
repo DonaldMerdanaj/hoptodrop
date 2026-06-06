@@ -117,7 +117,7 @@ export default function TopNav() {
       setEmail(user.email || "");
     }
 
-    if (!isDriverDomain && nextRole !== "customer") {
+    if (!isDriverDomain && nextRole === "driver") {
       // fix: hoptodrop.com is rider-only, so the account icon never opens driver/admin portals from the main domain.
       router.push("/rider/login");
       return;
