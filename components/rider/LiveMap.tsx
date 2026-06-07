@@ -190,6 +190,8 @@ export default function LiveMap({ initialRiderLocation }: { initialRiderLocation
         const bounds = new maps.LatLngBounds();
         const pickupLatLng = asLatLng(route.pickup);
         const dropoffLatLng = asLatLng(route.dropoff);
+        const hasPickup = Boolean(route.pickup.name);
+        const hasDropoff = Boolean(route.dropoff.name);
 
         if (riderLocation) {
           const center = asLatLng(riderLocation);
@@ -206,7 +208,7 @@ export default function LiveMap({ initialRiderLocation }: { initialRiderLocation
           bounds.extend(center);
         }
 
-        if (route.pickup.name) {
+        if (hasPickup) {
           markerRefs.current.push(
             createMapMarker(maps, {
               map: mapRef.current,
@@ -219,7 +221,7 @@ export default function LiveMap({ initialRiderLocation }: { initialRiderLocation
           bounds.extend(pickupLatLng);
         }
 
-        if (route.dropoff.name) {
+        if (hasDropoff) {
           markerRefs.current.push(
             createMapMarker(maps, {
               map: mapRef.current,
@@ -246,7 +248,7 @@ export default function LiveMap({ initialRiderLocation }: { initialRiderLocation
           bounds.extend({ lat: driver.lat, lng: driver.lng });
         });
 
-        if (route.pickup.name && route.dropoff.name) {
+        if (hasPickup && hasDropoff) {
           const service = new maps.DirectionsService();
           const renderer = new maps.DirectionsRenderer({
             map: mapRef.current,
@@ -260,7 +262,8 @@ export default function LiveMap({ initialRiderLocation }: { initialRiderLocation
           });
 
           mapRef.current.fitBounds(bounds, 80);
-        } else if (!riderLocation && !bounds.isEmpty()) {
+        } else if ((hasPickup || hasDropoff || !riderLocation) && !bounds.isEmpty()) {
+          // fix: a single selected pickup or dropoff is now brought into view behind the booking UI.
           mapRef.current.fitBounds(bounds, 80);
         }
       })

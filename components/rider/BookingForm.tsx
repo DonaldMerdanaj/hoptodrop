@@ -100,7 +100,12 @@ export default function BookingForm({
   }, [selectedDriver?.multiplier, tripKm]);
 
   useEffect(() => {
-    const hasValidRoute = [pickup.lat, pickup.lng, dropoff.lat, dropoff.lng].every(Number.isFinite);
+    const hasValidRoute = Boolean(
+      pickup.name.trim() &&
+      dropoff.name.trim() &&
+      [pickup.lat, pickup.lng, dropoff.lat, dropoff.lng].every(Number.isFinite)
+    );
+    // fix: the map route behind the booking sheet only renders after both selected locations are valid.
     if ((step === "where" || step === "driver") && hasValidRoute) routePreview(pickup, dropoff);
     if ((step === "details" || step === "assigned") && selectedDriver) {
       routePreview(

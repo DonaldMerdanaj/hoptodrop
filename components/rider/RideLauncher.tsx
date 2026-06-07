@@ -9,6 +9,10 @@ import { loadDraftPlace } from "@/lib/tripDraft";
 const emptyPickup: PlaceSelection = { name: "", lat: 41.3275, lng: 19.8187 };
 const emptyDestination: PlaceSelection = { name: "", lat: 41.3194, lng: 19.8157 };
 
+function hasValidPoint(place: PlaceSelection) {
+  return Boolean(place.name.trim() && Number.isFinite(place.lat) && Number.isFinite(place.lng));
+}
+
 export default function RideLauncher({
   initialPickup,
   onTripReady
@@ -28,6 +32,15 @@ export default function RideLauncher({
     else if (initialPickup) setPickup(initialPickup);
     if (savedDropoff) setDestination(savedDropoff);
   }, [initialPickup]);
+
+  useEffect(() => {
+    if (!hasValidPoint(pickup) && !hasValidPoint(destination)) return;
+
+    // fix: selected pickup/dropoff from the launcher pages now previews on the live map before the booking sheet opens.
+    window.dispatchEvent(new CustomEvent("taxi-route-preview", {
+      detail: { pickup, dropoff: destination }
+    }));
+  }, [pickup, destination]);
 
   function startTripSearch() {
     if (!destination.name) {
