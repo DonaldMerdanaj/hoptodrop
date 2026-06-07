@@ -22,6 +22,8 @@ type MapMarkerOptions = {
   size?: number;
 };
 
+type MarkerPosition = { lat: number; lng: number };
+
 function markerNode({ title, color = "#111827", label = "", size = 18 }: Omit<MapMarkerOptions, "map" | "position">) {
   const node = document.createElement("div");
   node.className = "hoptodrop-map-marker";
@@ -47,6 +49,7 @@ function markerNode({ title, color = "#111827", label = "", size = 18 }: Omit<Ma
 
 export function createMapMarker(maps: any, options: MapMarkerOptions) {
   let position = options.position;
+  let animationFrame = 0;
   const node = markerNode(options);
   const overlay = new maps.OverlayView();
 
@@ -74,9 +77,30 @@ export function createMapMarker(maps: any, options: MapMarkerOptions) {
 
   return {
     setMap(map: any | null) {
+      if (animationFrame) window.cancelAnimationFrame(animationFrame);
       overlay.setMap(map);
     },
-    setPosition(next: { lat: number; lng: number }) {
+    setPosition(next: MarkerPosition, animationMs = 650) {
+      const start = position;
+      const startedAt = performance.now();
+      if (animationFrame) window.cancelAnimationFrame(animationFrame);
+
+      // fix: animate live marker updates so the rider sees the taxi glide instead of jumping between GPS points.
+      function step(now: number) {
+        const progress = animationMs <= 0 ? 1 : Math.min(1, (now - startedAt) / animationMs);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        position = {
+          lat: start.lat + (next.lat - start.lat) * eased,
+          lng: start.lng + (next.lng - start.lng) * eased
+        };
+        overlay.draw();
+        if (progress < 1) animationFrame = window.requestAnimationFrame(step);
+      }
+
+      animationFrame = window.requestAnimationFrame(step);
+    },
+    snapTo(next: MarkerPosition) {
+      if (animationFrame) window.cancelAnimationFrame(animationFrame);
       position = next;
       overlay.draw();
     }

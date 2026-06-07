@@ -47,6 +47,11 @@ function driverEtaMinutes(driver: DriverLocation, pickup: PlaceSelection) {
   return Math.max(2, Math.round(kmToPickup * 3));
 }
 
+function etaFromDriverPoint(point: { lat: number; lng: number }, pickup: PlaceSelection) {
+  const kmToPickup = distanceKm(point.lat, point.lng, pickup.lat, pickup.lng);
+  return Math.max(1, Math.round(kmToPickup * 3));
+}
+
 function normalizeDriver(driver: DriverLocation, pickup: PlaceSelection): AvailableDriver {
   return {
     ...driver,
@@ -268,13 +273,29 @@ export default function BookingForm({
     async function refreshDriverLocation() {
       const { data } = await client
         .from("booking_route_points")
-        .select("lat,lng")
+        .select("lat,lng,recorded_at")
         .eq("booking_id", bookingId)
         .order("recorded_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (!data) return;
-      window.dispatchEvent(new CustomEvent("taxi-active-driver-location", { detail: data }));
+      applyDriverPoint(data);
+    }
+
+    function applyDriverPoint(point: { lat?: number; lng?: number }) {
+      if (typeof point.lat !== "number" || typeof point.lng !== "number") return;
+      const liveEta = etaFromDriverPoint({ lat: point.lat, lng: point.lng }, pickup);
+      // fix: rider ETA updates from the driver's latest live GPS point, not only the initial accept estimate.
+      setSelectedDriver((current) => current ? {
+        ...current,
+        lat: point.lat!,
+        lng: point.lng!,
+        eta: liveEta,
+        updated_at: new Date().toISOString()
+      } : current);
+      window.dispatchEvent(new CustomEvent("taxi-active-driver-location", {
+        detail: { lat: point.lat, lng: point.lng }
+      }));
     }
 
     const channel = client
@@ -294,11 +315,7 @@ export default function BookingForm({
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "booking_route_points", filter: `booking_id=eq.${bookingId}` },
         (payload) => {
-          const point = payload.new as { lat?: number; lng?: number };
-          if (typeof point.lat !== "number" || typeof point.lng !== "number") return;
-          window.dispatchEvent(new CustomEvent("taxi-active-driver-location", {
-            detail: { lat: point.lat, lng: point.lng }
-          }));
+          applyDriverPoint(payload.new as { lat?: number; lng?: number });
         }
       )
       .subscribe();
@@ -307,11 +324,14 @@ export default function BookingForm({
     refreshBookingStatus();
     refreshDriverLocation();
     const statusTimer = window.setInterval(refreshBookingStatus, 2500);
+    // fix: poll latest driver GPS as a fallback in case realtime route point events lag or disconnect.
+    const driverLocationTimer = window.setInterval(refreshDriverLocation, 5000);
 
     return () => {
       client.removeChannel(channel);
       client.removeChannel(routeChannel);
       window.clearInterval(statusTimer);
+      window.clearInterval(driverLocationTimer);
     };
   }, [bookingId, pickup.lat, pickup.lng]);
 
