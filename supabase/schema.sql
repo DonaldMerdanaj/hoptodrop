@@ -157,6 +157,7 @@ check (phase in ('assigned','accepted','arrived','started','completed'));
 drop policy if exists "Anyone can create bookings" on public.bookings;
 drop policy if exists "Anyone can read bookings" on public.bookings;
 drop policy if exists "Authenticated users can create bookings" on public.bookings;
+drop policy if exists "Authenticated users can create own bookings" on public.bookings;
 drop policy if exists "Customers can read own bookings" on public.bookings;
 drop policy if exists "Authenticated users can read all bookings (temp)" on public.bookings;
 drop policy if exists "Admins can update bookings" on public.bookings;
@@ -164,12 +165,12 @@ drop policy if exists "Drivers can read pending and assigned bookings" on public
 drop policy if exists "Drivers can accept and progress own bookings" on public.bookings;
 drop policy if exists "Admins can manage bookings" on public.bookings;
 
-create policy "Customers can create own bookings"
+create policy "Authenticated users can create own bookings"
 on public.bookings for insert
 to authenticated
 with check (
-  public.current_role() = 'customer'
-  and auth.uid() = customer_id
+  -- fix: approved drivers can also book off duty; the trigger still forces customer_id = auth.uid().
+  auth.uid() = customer_id
   and driver_id is null
   and status = 'pending'
 );
@@ -434,6 +435,8 @@ begin
   where id = booking_id_input
     and status = 'pending'
     and driver_id is null
+    -- fix: a driver can ride with the same account but cannot accept their own booking.
+    and customer_id <> auth.uid()
   returning *;
 end;
 $$;

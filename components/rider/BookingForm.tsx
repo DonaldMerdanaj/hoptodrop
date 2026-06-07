@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Car, CheckCircle2, Clock3, LocateFixed, MapPin, Navigation, Search } from "lucide-react";
 import PlaceInput, { type PlaceSelection } from "@/components/shared/PlaceInput";
-import { clearAccountMode } from "@/lib/accountMode";
 import { getCurrentUserProfile } from "@/lib/authProfile";
 import { getRiderProfile, saveRiderProfile } from "@/lib/riderProfile";
 import { loadGoogleMaps } from "@/lib/googleMaps";
@@ -138,9 +137,11 @@ export default function BookingForm({
 
     async function checkRiderSession() {
       const { user, profile: appProfile } = await getCurrentUserProfile();
-      setRiderLoggedIn(Boolean(user && appProfile?.role === "customer"));
+      // fix: a signed-in driver can also ride; only admin accounts are excluded from rider booking.
+      setRiderLoggedIn(Boolean(user && appProfile?.role !== "admin"));
 
-      if (user && appProfile?.role === "customer") {
+      if (user && appProfile?.role !== "admin") {
+        // fix: preload rider details for both rider-only accounts and approved drivers booking off duty.
         const profile = await getRiderProfile(user);
         setRiderName((current) => current || profile?.full_name || "");
         setRiderPhone((current) => current || profile?.phone || "");
@@ -150,7 +151,8 @@ export default function BookingForm({
     checkRiderSession();
     const { data } = supabase.auth.onAuthStateChange(() => {
       getCurrentUserProfile().then(({ user, profile }) => {
-        setRiderLoggedIn(Boolean(user && profile?.role === "customer"));
+        // fix: rider login state reflects booking permission, not only the profile.role value.
+        setRiderLoggedIn(Boolean(user && profile?.role !== "admin"));
       });
     });
 
@@ -403,31 +405,28 @@ export default function BookingForm({
     }
 
     const { user, profile: appProfile } = await getCurrentUserProfile();
-    if (appProfile?.role === "driver") {
-      await supabase.auth.signOut();
-      clearAccountMode();
-      setRiderLoggedIn(false);
-      setMessage("Drivers must log out and sign in as a rider to book a ride.");
-      router.push("/rider/login");
-      return;
-    }
-
-    if (!user || appProfile?.role !== "customer") {
+    if (!user) {
       setMessage("Log in as a rider to confirm this ride.");
       console.log("[booking:create:blocked]", {
         route: window.location.pathname,
-        userId: user?.id,
-        email: user?.email,
-        role: appProfile?.role,
-        customerId: user?.id,
+        // fix: unauthenticated booking debug logs use explicit nulls so TypeScript does not narrow user to never.
+        userId: null,
+        email: null,
+        role: null,
+        customerId: null,
         driverId: selectedDriver.id
       });
       router.push("/rider/login");
       return;
     }
 
+    if (appProfile?.role === "admin") {
+      setMessage("Admin accounts cannot create rider bookings from this screen.");
+      return;
+    }
+
     setMessage("Requesting ride...");
-    // fix: ride confirmation stores the latest rider details in the database profile.
+    // fix: driver accounts can book while off duty; ride details are stored in the rider profile.
     const profile = user
       ? await saveRiderProfile(user, { full_name: riderName, phone: riderPhone })
       : null;
@@ -461,7 +460,7 @@ export default function BookingForm({
       route: window.location.pathname,
       userId: user.id,
       email: user.email,
-      role: appProfile.role,
+      role: appProfile?.role || "customer",
       customerId: user.id,
       driverId: null
     });
@@ -502,6 +501,8 @@ export default function BookingForm({
 
   const collapsedTitle = dropoff.name || "Where to?";
   const collapsedSubtitle = pickup.name ? `Pickup: ${pickup.name}` : "Add pickup location";
+  const canShowDriverEta = Boolean(selectedDriver && pickup.name.trim() && dropoff.name.trim());
+  const etaLabel = canShowDriverEta && selectedDriver ? `${selectedDriver.eta} min` : "";
 
   function startSheetDrag(event: React.PointerEvent<HTMLElement>) {
     dragStartY.current = event.clientY;
@@ -527,7 +528,7 @@ export default function BookingForm({
             <strong>{collapsedTitle}</strong>
             <small>{collapsedSubtitle}</small>
           </span>
-          <b>{selectedDriver ? `${selectedDriver.eta} min` : "--"}</b>
+          {etaLabel && <b>{etaLabel}</b>}
         </button>
       </section>
     );
@@ -549,7 +550,7 @@ export default function BookingForm({
           <h1>{title}</h1>
         </div>
         <div className="sheet-actions">
-          <div className="eta-chip"><Clock3 size={16} /> {selectedDriver ? `${selectedDriver.eta} min` : "--"}</div>
+          {etaLabel && <div className="eta-chip"><Clock3 size={16} /> {etaLabel}</div>}
           <button className="icon-close" type="button" onClick={onClose} aria-label="Close booking form">x</button>
         </div>
       </div>

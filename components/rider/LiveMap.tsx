@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { DriverLocation } from "@/lib/types";
-import { getGoogleMapsKey, loadGoogleMaps } from "@/lib/googleMaps";
+import { createMapMarker, getGoogleMapsKey, loadGoogleMaps } from "@/lib/googleMaps";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type RoutePoint = {
@@ -16,17 +16,6 @@ const defaultDropoff: RoutePoint = { name: "", lat: 41.3194, lng: 19.8157 };
 
 function asLatLng(point: RoutePoint) {
   return { lat: point.lat, lng: point.lng };
-}
-
-function pinIcon(maps: any, color: string, scale = 9) {
-  return {
-    path: maps.SymbolPath.CIRCLE,
-    fillColor: color,
-    fillOpacity: 1,
-    strokeColor: "#ffffff",
-    strokeWeight: 4,
-    scale
-  };
 }
 
 export default function LiveMap({ initialRiderLocation }: { initialRiderLocation?: RoutePoint | null }) {
@@ -109,12 +98,14 @@ export default function LiveMap({ initialRiderLocation }: { initialRiderLocation
       if (!maps || !mapRef.current) return;
 
       if (!activeDriverMarkerRef.current) {
-        activeDriverMarkerRef.current = new maps.Marker({
+        // fix: use a custom overlay marker instead of deprecated google.maps.Marker.
+        activeDriverMarkerRef.current = createMapMarker(maps, {
           map: mapRef.current,
           position: detail,
           title: "Your driver",
-          label: { text: "TAXI", color: "#ffffff", fontSize: "9px", fontWeight: "900" },
-          icon: pinIcon(maps, "#16a34a", 15)
+          label: "TAXI",
+          color: "#16a34a",
+          size: 34
         });
       } else {
         activeDriverMarkerRef.current.setPosition(detail);
@@ -202,11 +193,13 @@ export default function LiveMap({ initialRiderLocation }: { initialRiderLocation
 
         if (riderLocation) {
           const center = asLatLng(riderLocation);
-          riderMarkerRef.current = new maps.Marker({
+          // fix: use custom overlay markers to avoid deprecated google.maps.Marker warnings.
+          riderMarkerRef.current = createMapMarker(maps, {
             map: mapRef.current,
             position: center,
             title: "Current location",
-            icon: pinIcon(maps, "#2563eb", 8)
+            color: "#2563eb",
+            size: 18
           });
           mapRef.current.setCenter(center);
           mapRef.current.setZoom(15);
@@ -215,11 +208,12 @@ export default function LiveMap({ initialRiderLocation }: { initialRiderLocation
 
         if (route.pickup.name) {
           markerRefs.current.push(
-            new maps.Marker({
+            createMapMarker(maps, {
               map: mapRef.current,
               position: pickupLatLng,
               title: route.pickup.name,
-              icon: pinIcon(maps, "#111827", 8)
+              color: "#111827",
+              size: 18
             })
           );
           bounds.extend(pickupLatLng);
@@ -227,11 +221,12 @@ export default function LiveMap({ initialRiderLocation }: { initialRiderLocation
 
         if (route.dropoff.name) {
           markerRefs.current.push(
-            new maps.Marker({
+            createMapMarker(maps, {
               map: mapRef.current,
               position: dropoffLatLng,
               title: route.dropoff.name,
-              icon: pinIcon(maps, "#2563eb", 8)
+              color: "#2563eb",
+              size: 18
             })
           );
           bounds.extend(dropoffLatLng);
@@ -239,12 +234,13 @@ export default function LiveMap({ initialRiderLocation }: { initialRiderLocation
 
 
         drivers.forEach((driver) => {
-          const marker = new maps.Marker({
+          const marker = createMapMarker(maps, {
             map: mapRef.current,
             position: { lat: driver.lat, lng: driver.lng },
             title: `${driver.driver_name} - ${driver.vehicle || "Taxi"}`,
-            label: { text: "TAXI", color: "#ffffff", fontSize: "9px", fontWeight: "900" },
-            icon: pinIcon(maps, driver.status === "busy" ? "#6b7280" : "#111827", 15)
+            label: "TAXI",
+            color: driver.status === "busy" ? "#6b7280" : "#111827",
+            size: 34
           });
           markerRefs.current.push(marker);
           bounds.extend({ lat: driver.lat, lng: driver.lng });

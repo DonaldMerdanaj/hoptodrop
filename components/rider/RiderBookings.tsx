@@ -27,11 +27,12 @@ export default function RiderBookings() {
           setMessage("Log in to see your ride history.");
           return;
         }
-        if (profile?.role !== "customer" && profile?.role !== "admin") {
-          setMessage("This dashboard is only for rider accounts.");
+        if (profile?.role === "admin") {
+          setMessage("Admin accounts use the admin dashboard.");
           return;
         }
 
+        // fix: ride history belongs to the auth user, so driver accounts can also see rides they booked.
         const { data, error } = await supabase
           .from("bookings")
           .select("*")

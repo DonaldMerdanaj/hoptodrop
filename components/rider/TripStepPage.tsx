@@ -85,9 +85,9 @@ export default function TripStepPage({ step }: { step: TripStep }) {
           <ArrowLeft size={28} />
         </Link>
         <strong>Book Your Transfer</strong>
-        <Link className="trip-step-login" href="/rider/login">
+        <Link className="trip-step-login" href="/rider/login" aria-label="Account">
           <UserRound size={18} fill="currentColor" />
-          Account
+          <span>Account</span>
         </Link>
       </header>
 

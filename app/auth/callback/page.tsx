@@ -99,13 +99,12 @@ function AuthCallbackContent() {
         return;
       }
 
-      if (profile && profile.role !== callbackMode) {
-        // fix: wrong-role OAuth attempts should not leave a driver session stuck inside the rider portal, or vice versa.
+      if (callbackMode === "driver" && profile && profile.role !== "driver") {
+        // fix: wrong-role driver OAuth attempts should not leave a rider session stuck inside the driver portal.
         await supabase.auth.signOut();
         clearAccountMode();
         clearAuthIntent();
-        const targetPortal = callbackMode === "driver" ? "driver" : "rider";
-        setError(`This Google account is registered as ${profile.role}. Choose a different Google account for the ${targetPortal} portal, or use the ${profile.role} portal.`);
+        setError(`This Google account is registered as ${profile.role}. Choose a different Google account for the driver portal, or use the rider app.`);
         return;
       }
 
@@ -114,7 +113,7 @@ function AuthCallbackContent() {
       setAccountMode(callbackMode as AccountMode);
       clearAuthIntent();
       if (callbackMode === "customer") {
-        // fix: rider profile creation depends on the auth mode, not a redirect URL that may cross domains.
+        // fix: rider profile creation depends on the auth mode, and driver accounts may also book rides.
         await ensureRiderProfile(userData.user);
       }
 

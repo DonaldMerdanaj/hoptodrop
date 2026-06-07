@@ -3,10 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthForm from "@/components/shared/AuthForm";
-import { clearAccountMode } from "@/lib/accountMode";
 import { ensureUserProfile, getCurrentUserProfile, roleDashboard } from "@/lib/authProfile";
 import { ensureRiderProfile } from "@/lib/riderProfile";
-import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { isSupabaseConfigured } from "@/lib/supabase";
 
 export default function RiderLoginPage() {
   const router = useRouter();
@@ -26,15 +25,6 @@ export default function RiderLoginPage() {
           return;
         }
 
-        if (profile?.role === "driver") {
-          if (supabase) await supabase.auth.signOut();
-          clearAccountMode();
-          if (mounted) {
-            setNotice("You were signed in as a driver. Choose a rider Google account to book rides.");
-          }
-          return;
-        }
-
         if (!profile) {
           // fix: fresh rider Google sessions should create the missing customer profile instead of hanging on the login screen.
           await ensureUserProfile(user, "customer");
@@ -43,7 +33,14 @@ export default function RiderLoginPage() {
           return;
         }
 
-        router.replace(profile.role === "customer" ? "/" : roleDashboard(profile.role));
+        if (profile.role === "admin") {
+          router.replace(roleDashboard(profile.role));
+          return;
+        }
+
+        // fix: driver accounts may also ride with the same email; keep them on the rider app and create rider data.
+        await ensureRiderProfile(user);
+        router.replace("/");
       } catch (error) {
         console.error("[rider-login]", error);
         if (mounted) {

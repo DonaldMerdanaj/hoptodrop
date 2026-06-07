@@ -46,11 +46,12 @@ export default function RiderDashboardPage() {
           return;
         }
 
-        if (effectiveProfile.role !== "customer" && effectiveProfile.role !== "admin") {
+        if (effectiveProfile.role === "admin") {
           router.replace(roleDashboard(effectiveProfile.role));
           return;
         }
 
+        // fix: approved drivers can also ride with the same account; rider dashboard uses customer_profiles for ride data.
         const riderProfile = await getRiderProfile(sessionUser);
         if (!mounted) return;
         setUser({

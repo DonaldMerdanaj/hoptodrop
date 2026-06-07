@@ -19,7 +19,7 @@ import {
 import { useRouter } from "next/navigation";
 import { clearAccountMode } from "@/lib/accountMode";
 import { getCurrentUserProfile } from "@/lib/authProfile";
-import { loadGoogleMaps } from "@/lib/googleMaps";
+import { createMapMarker, loadGoogleMaps } from "@/lib/googleMaps";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type { Booking } from "@/lib/types";
 
@@ -136,6 +136,7 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
       .select("*")
       .eq("status", "pending")
       .is("driver_id", null)
+      .neq("customer_id", profile.id)
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
@@ -190,7 +191,8 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
         const booking = payload.new as Booking;
         if (!booking?.id) return;
 
-        if (booking.status === "pending" && status === "online") {
+        if (booking.status === "pending" && status === "online" && booking.customer_id !== profile.id) {
+          // fix: a driver may book as a rider, but must never receive their own ride request.
           setIncoming(booking);
           setCountdown(15);
           if ("vibrate" in navigator) navigator.vibrate([180, 80, 180]);
@@ -553,17 +555,13 @@ function DriverGoogleMap({ location }: { location: DriverLocation | null }) {
         disableDefaultUI: true,
         styles: [{ featureType: "poi", stylers: [{ visibility: "off" }] }]
       });
-      markerRef.current = new maps.Marker({
+      // fix: use a custom overlay marker instead of deprecated google.maps.Marker.
+      markerRef.current = createMapMarker(maps, {
         map: mapRef.current,
         position: location || tirana,
-        icon: {
-          path: maps.SymbolPath.CIRCLE,
-          scale: 9,
-          fillColor: "#111827",
-          fillOpacity: 1,
-          strokeColor: "#ffffff",
-          strokeWeight: 3
-        }
+        title: "Driver location",
+        color: "#111827",
+        size: 20
       });
     }).catch(() => {});
     return () => { active = false; };

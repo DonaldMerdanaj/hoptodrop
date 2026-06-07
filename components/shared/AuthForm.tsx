@@ -104,7 +104,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath, title, note
         return;
       }
 
-      if (profile && profile.role !== role) {
+      if (role === "driver" && profile && profile.role !== "driver") {
         await supabase.auth.signOut();
         clearAccountMode();
         setMessage(`This account is registered as ${profile.role}. Use the ${profile.role} portal or create a separate approved account.`);
@@ -113,7 +113,7 @@ export default function AuthForm({ role, onAuthChange, redirectPath, title, note
 
       if (!profile && data.user) await ensureUserProfile(data.user, role);
       if (role === "customer" && data.user) {
-        // fix: one email can be used as customer or driver; customer mode stores a rider profile.
+        // fix: one email can be used as rider and driver; rider mode stores rider data without changing driver access.
         await ensureRiderProfile(data.user);
       }
 

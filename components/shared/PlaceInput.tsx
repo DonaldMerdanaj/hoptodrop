@@ -125,7 +125,10 @@ export default function PlaceInput({ label, value, onChange, onPlaceSelected, on
       <input
         ref={inputRef}
         value={value.name}
-        onChange={(event) => onChange({ ...value, name: event.target.value })}
+        onChange={(event) => {
+          // fix: free typing must clear old coordinates until a Google suggestion/current location/map point is selected.
+          onChange({ name: event.target.value, lat: Number.NaN, lng: Number.NaN, placeId: undefined });
+        }}
         onFocus={() => {
           setFocused(true);
           onFocusChange?.(true);
