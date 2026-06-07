@@ -1,11 +1,13 @@
 "use client";
 
 const GOOGLE_MAPS_SCRIPT_ID = "google-maps-js";
+const GOOGLE_MAPS_CALLBACK = "__hoptodropGoogleMapsReady";
 let googleMapsPromise: Promise<any> | null = null;
 
 declare global {
   interface Window {
     google?: any;
+    __hoptodropGoogleMapsReady?: () => void;
   }
 }
 
@@ -126,9 +128,12 @@ export function loadGoogleMaps(): Promise<any> {
     script.id = GOOGLE_MAPS_SCRIPT_ID;
     script.async = true;
     script.defer = true;
-    // fix: pass Google's loading=async parameter so the live site avoids the Maps direct-load warning.
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places&v=weekly&region=AL&language=en&loading=async`;
-    script.onload = () => resolve(window.google!.maps);
+    // fix: when using loading=async, wait for Google's callback before reading google.maps.Map.
+    window[GOOGLE_MAPS_CALLBACK] = () => {
+      if (window.google?.maps?.Map) resolve(window.google.maps);
+      else reject(new Error("Google Maps loaded without the Maps library"));
+    };
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places&v=weekly&region=AL&language=en&loading=async&callback=${GOOGLE_MAPS_CALLBACK}`;
     script.onerror = () => reject(new Error("Google Maps failed to load"));
     document.head.appendChild(script);
   });

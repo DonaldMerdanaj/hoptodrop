@@ -8,6 +8,7 @@ import { getCurrentUserProfile } from "@/lib/authProfile";
 import { getRiderProfile, saveRiderProfile } from "@/lib/riderProfile";
 import { loadGoogleMaps } from "@/lib/googleMaps";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { clearBookingDraft, loadBookingDraft, saveBookingDraft } from "@/lib/tripDraft";
 import type { DriverLocation } from "@/lib/types";
 
 const places = [
@@ -135,7 +136,19 @@ export default function BookingForm({
 
   useEffect(() => {
     if (open) {
-      setStep("where");
+      const draft = loadBookingDraft();
+      if (draft?.reopen) {
+        // fix: restore the in-progress booking after rider login instead of starting from the first field.
+        setPickup(draft.pickup);
+        setDropoff(draft.dropoff);
+        setRiderName(draft.riderName);
+        setRiderPhone(draft.riderPhone);
+        setPassengers(draft.passengers || 1);
+        setStep("driver");
+        setMessage("Your trip details were saved. Choose an available taxi to continue.");
+      } else {
+        setStep("where");
+      }
       setCollapsed(false);
       setMessage("");
       setBookingId(null);
@@ -431,6 +444,14 @@ export default function BookingForm({
 
     const { user, profile: appProfile } = await getCurrentUserProfile();
     if (!user) {
+      saveBookingDraft({
+        pickup,
+        dropoff,
+        riderName,
+        riderPhone,
+        passengers,
+        reopen: true
+      });
       setMessage("Log in as a rider to confirm this ride.");
       console.log("[booking:create:blocked]", {
         route: window.location.pathname,
@@ -502,6 +523,7 @@ export default function BookingForm({
     }
 
     setBookingId(data?.id || null);
+    clearBookingDraft();
 
     setStep("requested");
     setMessage("Request sent to nearby online taxis. Waiting for a driver to accept.");

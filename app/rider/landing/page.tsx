@@ -10,6 +10,7 @@ import TopNav from "@/components/shared/TopNav";
 import { getCurrentUserProfile } from "@/lib/authProfile";
 import { driverDestination } from "@/lib/driverRouting";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { loadBookingDraft } from "@/lib/tripDraft";
 
 const LiveMap = dynamic(() => import("@/components/rider/LiveMap"), { ssr: false });
 
@@ -103,6 +104,17 @@ export default function Home() {
   useEffect(() => {
     if (locationStatus === "outside") setBookingOpen(false);
   }, [locationStatus]);
+
+  useEffect(() => {
+    if (checkingRole || locationStatus === "outside") return;
+    const draft = loadBookingDraft();
+    if (!draft?.reopen) return;
+
+    // fix: after rider login, reopen the booking sheet with the saved form instead of returning to an empty map.
+    setMapPickup(draft.pickup);
+    setLauncherDestination(draft.dropoff);
+    setBookingOpen(true);
+  }, [checkingRole, locationStatus]);
 
   if (checkingRole) {
     return (
