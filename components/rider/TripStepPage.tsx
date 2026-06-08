@@ -12,6 +12,7 @@ import {
   UserRound
 } from "lucide-react";
 import PlaceInput, { type PlaceSelection } from "@/components/shared/PlaceInput";
+import { reverseGeocodeAddress } from "@/lib/googleMaps";
 import {
   loadDraftPlace,
   saveDraftPlace
@@ -62,11 +63,14 @@ export default function TripStepPage({ step }: { step: TripStep }) {
   function useCurrentLocation() {
     if (!navigator.geolocation) return;
 
-    navigator.geolocation.getCurrentPosition((position) => {
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
       selectPickup({
-        name: "Current location",
-        lat: position.coords.latitude,
-        lng: position.coords.longitude
+        // fix: current-location pickup uses the real Google address in the pickup field.
+        name: await reverseGeocodeAddress(lat, lng),
+        lat,
+        lng
       });
     });
   }

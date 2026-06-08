@@ -9,6 +9,7 @@ import RideLauncher from "@/components/rider/RideLauncher";
 import TopNav from "@/components/shared/TopNav";
 import { getCurrentUserProfile } from "@/lib/authProfile";
 import { driverDestination } from "@/lib/driverRouting";
+import { reverseGeocodeAddress } from "@/lib/googleMaps";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { loadBookingDraft } from "@/lib/tripDraft";
 
@@ -84,11 +85,14 @@ export default function Home() {
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
         const pickup = {
-          name: "Current location",
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
+          // fix: show the rider's current street/address on the main booking card.
+          name: await reverseGeocodeAddress(lat, lng),
+          lat,
+          lng
         };
 
         setCurrentPickup(pickup);

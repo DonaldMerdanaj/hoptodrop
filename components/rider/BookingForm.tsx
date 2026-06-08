@@ -6,7 +6,7 @@ import { Car, CheckCircle2, Clock3, LocateFixed, MapPin, Navigation, Search } fr
 import PlaceInput, { type PlaceSelection } from "@/components/shared/PlaceInput";
 import { getCurrentUserProfile } from "@/lib/authProfile";
 import { getRiderProfile, saveRiderProfile } from "@/lib/riderProfile";
-import { loadGoogleMaps } from "@/lib/googleMaps";
+import { loadGoogleMaps, reverseGeocodeAddress } from "@/lib/googleMaps";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { clearBookingDraft, loadBookingDraft, saveBookingDraft } from "@/lib/tripDraft";
 import type { DriverLocation } from "@/lib/types";
@@ -392,26 +392,11 @@ export default function BookingForm({
     setLocatingPickup(true);
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const fallback = {
-          name: "Current location",
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        };
-
-        try {
-          const maps = await loadGoogleMaps();
-          const geocoder = new maps.Geocoder();
-          geocoder.geocode({ location: { lat: fallback.lat, lng: fallback.lng } }, (results: any[], status: string) => {
-            setPickup({
-              ...fallback,
-              name: status === "OK" && results?.[0]?.formatted_address ? results[0].formatted_address : fallback.name
-            });
-            setLocatingPickup(false);
-          });
-        } catch {
-          setPickup(fallback);
-          setLocatingPickup(false);
-        }
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        // fix: current-location pickup displays the resolved address instead of generic text.
+        setPickup({ name: await reverseGeocodeAddress(lat, lng), lat, lng });
+        setLocatingPickup(false);
       },
       () => {
         setMessage("Allow location access to use current pickup.");

@@ -109,6 +109,28 @@ export function createMapMarker(maps: any, options: MapMarkerOptions) {
   };
 }
 
+export async function reverseGeocodeAddress(lat: number, lng: number) {
+  try {
+    const maps = await loadGoogleMaps();
+    const geocoder = new maps.Geocoder();
+    const location = { lat, lng };
+
+    return await new Promise<string>((resolve) => {
+      // fix: current-location labels use the real Google address instead of the generic "Current location" text.
+      geocoder.geocode({ location }, (results: any[] | null, status: string) => {
+        if (status === "OK" && results?.[0]?.formatted_address) {
+          resolve(results[0].formatted_address);
+          return;
+        }
+
+        resolve(`Pinned location (${lat.toFixed(5)}, ${lng.toFixed(5)})`);
+      });
+    });
+  } catch {
+    return `Pinned location (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+  }
+}
+
 export function loadGoogleMaps(): Promise<any> {
   const key = getGoogleMapsKey();
   if (!key) return Promise.reject(new Error("Missing NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"));
