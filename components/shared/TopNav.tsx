@@ -188,6 +188,8 @@ export default function TopNav() {
                 <>
                   <Link href="/">Booking</Link>
                   <Link href="/rider/login">Rider Login</Link>
+                  <Link href="/about">About</Link>
+                  <Link href="/support">Support</Link>
                   <Link href="/driver">Driver Login</Link>
                 </>
               )}
