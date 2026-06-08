@@ -11,6 +11,33 @@ declare global {
   }
 }
 
+function mapsReady() {
+  const maps = window.google?.maps;
+  return Boolean(
+    maps?.Map &&
+    maps?.Geocoder &&
+    maps?.DirectionsService &&
+    maps?.places?.AutocompleteService &&
+    maps?.places?.AutocompleteSessionToken
+  );
+}
+
+function waitForGoogleMaps(resolve: (maps: any) => void, reject: (error: Error) => void) {
+  const startedAt = Date.now();
+  const timer = window.setInterval(() => {
+    if (mapsReady()) {
+      window.clearInterval(timer);
+      resolve(window.google!.maps);
+      return;
+    }
+
+    if (Date.now() - startedAt > 10000) {
+      window.clearInterval(timer);
+      reject(new Error("Google Maps loaded without the required Maps and Places libraries"));
+    }
+  }, 50);
+}
+
 export function getGoogleMapsKey() {
   return process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 }
@@ -135,13 +162,16 @@ export function loadGoogleMaps(): Promise<any> {
   const key = getGoogleMapsKey();
   if (!key) return Promise.reject(new Error("Missing NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"));
   if (typeof window === "undefined") return Promise.reject(new Error("Google Maps requires the browser"));
-  if (window.google?.maps) return Promise.resolve(window.google.maps);
+  if (mapsReady()) return Promise.resolve(window.google!.maps);
   if (googleMapsPromise) return googleMapsPromise;
 
   googleMapsPromise = new Promise((resolve, reject) => {
     const existing = document.getElementById(GOOGLE_MAPS_SCRIPT_ID) as HTMLScriptElement | null;
     if (existing) {
-      existing.addEventListener("load", () => resolve(window.google!.maps));
+      // fix: client-side navigation can find an already-inserted Maps script after its load event fired.
+      window[GOOGLE_MAPS_CALLBACK] = () => waitForGoogleMaps(resolve, reject);
+      waitForGoogleMaps(resolve, reject);
+      existing.addEventListener("load", () => waitForGoogleMaps(resolve, reject));
       existing.addEventListener("error", () => reject(new Error("Google Maps failed to load")));
       return;
     }
@@ -152,8 +182,7 @@ export function loadGoogleMaps(): Promise<any> {
     script.defer = true;
     // fix: when using loading=async, wait for Google's callback before reading google.maps.Map.
     window[GOOGLE_MAPS_CALLBACK] = () => {
-      if (window.google?.maps?.Map) resolve(window.google.maps);
-      else reject(new Error("Google Maps loaded without the Maps library"));
+      waitForGoogleMaps(resolve, reject);
     };
     script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places&v=weekly&region=AL&language=en&loading=async&callback=${GOOGLE_MAPS_CALLBACK}`;
     script.onerror = () => reject(new Error("Google Maps failed to load"));
