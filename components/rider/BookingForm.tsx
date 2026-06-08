@@ -111,6 +111,7 @@ export default function BookingForm({
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [riderLoggedIn, setRiderLoggedIn] = useState(false);
   const [driverSearchRadius, setDriverSearchRadius] = useState(NEARBY_DRIVER_RADIUS_KM);
+  const formRef = useRef<HTMLFormElement | null>(null);
   const dragStartY = useRef<number | null>(null);
 
   const tripKm = distanceKm(pickup.lat, pickup.lng, dropoff.lat, dropoff.lng);
@@ -168,6 +169,11 @@ export default function BookingForm({
       document.documentElement.style.removeProperty("--keyboard-offset");
     };
   }, []);
+
+  useEffect(() => {
+    // fix: keep the docked booking frame from reopening halfway scrolled after step changes.
+    formRef.current?.scrollTo({ top: 0 });
+  }, [step, open, availableDrivers.length]);
 
   useEffect(() => {
     if (open) {
@@ -418,7 +424,7 @@ export default function BookingForm({
 
     if (availableDrivers.length === 0) {
       setSelectedDriver(null);
-      setMessage("No taxis are available within 6 km right now. Please try again in a few minutes.");
+      setMessage("");
       return;
     }
 
@@ -612,26 +618,24 @@ export default function BookingForm({
 
   return (
     <section className={`${typingMode ? "ride-sheet typing-mode" : "ride-sheet"} step-${step}`}>
-      <button
-        className="sheet-drag-handle"
-        type="button"
-        aria-label="Minimize booking form"
-        onPointerDown={startSheetDrag}
-        onPointerUp={endSheetDrag}
-        onClick={() => setCollapsed(true)}
-      />
-      <div className="sheet-header compact-header">
-        <div>
-          <span className="eyebrow">{step === "where" ? "Location" : step === "driver" ? "Taxi" : step === "details" ? "Details" : "Live trip"}</span>
+      <div className="booking-window-bar">
+        <button
+          className="sheet-drag-handle"
+          type="button"
+          aria-label="Minimize booking form"
+          onPointerDown={startSheetDrag}
+          onPointerUp={endSheetDrag}
+          onClick={() => setCollapsed(true)}
+        />
+        <div className="booking-window-title">
           <h1>{title}</h1>
-        </div>
-        <div className="sheet-actions">
           {etaLabel && <div className="eta-chip"><Clock3 size={16} /> {etaLabel}</div>}
-          <button className="icon-close" type="button" onClick={onClose} aria-label="Close booking form">x</button>
         </div>
+        <button className="icon-close" type="button" onClick={onClose} aria-label="Close booking form">x</button>
       </div>
 
       <form
+        ref={formRef}
         className="ride-form"
         onSubmit={submitStep}
         onFocusCapture={(event) => {
@@ -665,12 +669,12 @@ export default function BookingForm({
 
         {step === "driver" && (
           <>
-            <div className="fare-box">
-              <div><span>{tripKm.toFixed(1)} km trip</span><strong>Choose your ride</strong></div>
-              <div><span>From</span><strong>EUR {calculateTaxiPrice(tripKm).toFixed(2)}</strong></div>
-            </div>
-            <div className="driver-pick-list">
-              {selectedDriver && (
+            {selectedDriver ? (
+              <>
+                <div className="fare-box">
+                  <div><span>{tripKm.toFixed(1)} km trip</span><strong>Choose your ride</strong></div>
+                  <div><span>From</span><strong>EUR {calculateTaxiPrice(tripKm).toFixed(2)}</strong></div>
+                </div>
                 <div className="driver-pick-card active">
                   <span className="driver-avatar"><Car size={22} /></span>
                   <span className="driver-option-copy">
@@ -680,21 +684,26 @@ export default function BookingForm({
                   </span>
                   <b>EUR {calculateTaxiPrice(tripKm).toFixed(2)}</b>
                 </div>
-              )}
-              {availableDrivers.length === 0 && (
-                <div className="trip-status-card">
+                <button className="primary-btn request-btn" type="button" onClick={continueWithDriver}>
+                  <Car size={19} />
+                  Request taxi - EUR {estimatedPrice.toFixed(2)}
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="trip-status-card no-taxi-card">
                   <Clock3 size={22} />
                   <div>
                     <strong>No nearby taxis right now</strong>
-                    <span>We could not find an online taxi close to your pickup. Try again in a few minutes.</span>
+                    <span>We checked within 6 km of your pickup. Try again in a few minutes.</span>
                   </div>
                 </div>
-              )}
-            </div>
-            <button className="primary-btn request-btn" type="button" onClick={continueWithDriver} disabled={!selectedDriver}>
-              <Car size={19} />
-              {selectedDriver ? `Request taxi - EUR ${estimatedPrice.toFixed(2)}` : "Waiting for online taxi"}
-            </button>
+                <button className="primary-btn request-btn" type="button" onClick={findDrivers}>
+                  <Search size={19} />
+                  Search again
+                </button>
+              </>
+            )}
             <button className="secondary-btn compact-step-back" type="button" onClick={() => setStep("where")}>Back to location</button>
           </>
         )}
