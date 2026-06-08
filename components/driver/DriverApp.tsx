@@ -25,6 +25,7 @@ import type { Booking } from "@/lib/types";
 
 type DriverTab = "home" | "trips" | "earnings" | "profile";
 type DriverStatus = "online" | "offline" | "busy";
+const DRIVER_LOCATION_WRITE_INTERVAL_MS = 5000;
 
 type DriverProfile = {
   id: string;
@@ -89,6 +90,8 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
   const [countdown, setCountdown] = useState(15);
   const [locationPermission, setLocationPermission] = useState<LocationPermission>("unknown");
   const locationTimerRef = useRef<number | null>(null);
+  const locationWatchRef = useRef<number | null>(null);
+  const lastLocationWriteRef = useRef(0);
   const activeTripRef = useRef<Booking | null>(null);
 
   const status = profile.status || location?.status || "offline";
@@ -237,8 +240,20 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
   useEffect(() => {
     return () => {
       if (locationTimerRef.current !== null) window.clearInterval(locationTimerRef.current);
+      if (locationWatchRef.current !== null) navigator.geolocation.clearWatch(locationWatchRef.current);
     };
   }, []);
+
+  function stopLocationUpdates() {
+    if (locationTimerRef.current !== null) {
+      window.clearInterval(locationTimerRef.current);
+      locationTimerRef.current = null;
+    }
+    if (locationWatchRef.current !== null) {
+      navigator.geolocation.clearWatch(locationWatchRef.current);
+      locationWatchRef.current = null;
+    }
+  }
 
   function readCurrentPosition() {
     return new Promise<GeolocationPosition>((resolve, reject) => {
@@ -255,14 +270,14 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
     });
   }
 
-  async function saveLocation(nextStatus = status, showErrors = true) {
+  async function saveLocation(nextStatus = status, showErrors = true, currentPosition?: GeolocationPosition) {
     if (!supabase || !navigator.geolocation) return false;
     const client = supabase;
     const { user } = await getCurrentUserProfile();
     if (!user) return false;
 
     try {
-      const position = await readCurrentPosition();
+      const position = currentPosition || await readCurrentPosition();
       const nextLocation = {
         lat: position.coords.latitude,
         lng: position.coords.longitude,
@@ -299,6 +314,7 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
 
       setLocationPermission("granted");
       setMessage("");
+      lastLocationWriteRef.current = Date.now();
       return true;
     } catch {
       setLocationPermission("denied");
@@ -307,6 +323,35 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
       }
       return false;
     }
+  }
+
+  function startLocationUpdates(nextStatus: DriverStatus) {
+    stopLocationUpdates();
+    if (!navigator.geolocation) return;
+
+    // fix: driver GPS uses a live watcher while online/busy, with Supabase writes throttled to every 5 seconds.
+    locationWatchRef.current = navigator.geolocation.watchPosition(
+      (position) => {
+        const nextLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          status: nextStatus
+        };
+        setLocation(nextLocation);
+
+        if (Date.now() - lastLocationWriteRef.current >= DRIVER_LOCATION_WRITE_INTERVAL_MS) {
+          void saveLocation(nextStatus, false, position);
+        }
+      },
+      () => {
+        setLocationPermission("denied");
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 1000,
+        timeout: 12000
+      }
+    );
   }
 
   async function updateStoredStatus(nextStatus: DriverStatus) {
@@ -326,7 +371,7 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
   }
 
   async function setDriverStatus(nextStatus: DriverStatus) {
-    if (locationTimerRef.current !== null) window.clearInterval(locationTimerRef.current);
+    stopLocationUpdates();
 
     if (nextStatus === "offline") {
       setProfile((current) => ({ ...current, status: "offline" }));
@@ -342,9 +387,7 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
     }
 
     setProfile((current) => ({ ...current, status: nextStatus }));
-    if (nextStatus === "online" || nextStatus === "busy") {
-      locationTimerRef.current = window.setInterval(() => saveLocation(nextStatus), 5000);
-    }
+    if (nextStatus === "online" || nextStatus === "busy") startLocationUpdates(nextStatus);
     if (nextStatus === "online") await loadPendingRequest();
   }
 

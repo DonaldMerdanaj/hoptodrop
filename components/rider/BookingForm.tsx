@@ -15,10 +15,14 @@ const places = [
   { name: "", lat: 41.3275, lng: 19.8187 },
   { name: "", lat: 41.3194, lng: 19.8157 }
 ];
+const NEARBY_DRIVER_RADIUS_KM = 3;
+const EXTENDED_DRIVER_RADIUS_KM = 6;
+const MAX_DRIVER_LOCATION_AGE_MINUTES = 2;
 
 type Step = "where" | "driver" | "details" | "requested" | "assigned" | "arrived" | "started" | "completed";
 type AvailableDriver = DriverLocation & {
   eta: number;
+  distanceToPickup: number;
   rideClass: string;
   multiplier: number;
   seats: number;
@@ -54,13 +58,21 @@ function etaFromDriverPoint(point: { lat: number; lng: number }, pickup: PlaceSe
 }
 
 function normalizeDriver(driver: DriverLocation, pickup: PlaceSelection): AvailableDriver {
+  const distanceToPickup = distanceKm(driver.lat, driver.lng, pickup.lat, pickup.lng);
   return {
     ...driver,
     eta: driverEtaMinutes(driver, pickup),
+    distanceToPickup,
     rideClass: "Taxi",
     multiplier: 1,
     seats: 4
   };
+}
+
+function isFreshDriverLocation(driver: DriverLocation) {
+  const updatedAt = new Date(driver.updated_at).getTime();
+  if (!Number.isFinite(updatedAt)) return false;
+  return Date.now() - updatedAt <= MAX_DRIVER_LOCATION_AGE_MINUTES * 60 * 1000;
 }
 
 function routePreview(origin: PlaceSelection, destination: PlaceSelection) {
@@ -98,6 +110,7 @@ export default function BookingForm({
   const [locatingPickup, setLocatingPickup] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [riderLoggedIn, setRiderLoggedIn] = useState(false);
+  const [driverSearchRadius, setDriverSearchRadius] = useState(NEARBY_DRIVER_RADIUS_KM);
   const dragStartY = useRef<number | null>(null);
 
   const tripKm = distanceKm(pickup.lat, pickup.lng, dropoff.lat, dropoff.lng);
@@ -133,6 +146,28 @@ export default function BookingForm({
   useEffect(() => {
     if (initialDropoff) setDropoff(initialDropoff);
   }, [initialDropoff]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+
+    const updateKeyboardOffset = () => {
+      const viewport = window.visualViewport;
+      if (!viewport) return;
+
+      // fix: keep the booking frame above the iOS/Android keyboard instead of letting inputs disappear.
+      const keyboardOffset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+      document.documentElement.style.setProperty("--keyboard-offset", `${Math.round(keyboardOffset)}px`);
+    };
+
+    updateKeyboardOffset();
+    window.visualViewport.addEventListener("resize", updateKeyboardOffset);
+    window.visualViewport.addEventListener("scroll", updateKeyboardOffset);
+    return () => {
+      window.visualViewport?.removeEventListener("resize", updateKeyboardOffset);
+      window.visualViewport?.removeEventListener("scroll", updateKeyboardOffset);
+      document.documentElement.style.removeProperty("--keyboard-offset");
+    };
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -200,7 +235,15 @@ export default function BookingForm({
         return;
       }
 
-      const drivers = (data || []).map((driver) => normalizeDriver(driver as DriverLocation, pickup));
+      const freshDrivers = (data || [])
+        .map((driver) => normalizeDriver(driver as DriverLocation, pickup))
+        .filter(isFreshDriverLocation)
+        .sort((a, b) => a.distanceToPickup - b.distanceToPickup);
+      const nearbyDrivers = freshDrivers.filter((driver) => driver.distanceToPickup <= NEARBY_DRIVER_RADIUS_KM);
+      const expandedDrivers = freshDrivers.filter((driver) => driver.distanceToPickup <= EXTENDED_DRIVER_RADIUS_KM);
+      // fix: rider requests first search within 3 km, then expand only to 6 km instead of offering far-away taxis.
+      const drivers = nearbyDrivers.length ? nearbyDrivers : expandedDrivers;
+      setDriverSearchRadius(nearbyDrivers.length ? NEARBY_DRIVER_RADIUS_KM : EXTENDED_DRIVER_RADIUS_KM);
       setAvailableDrivers(drivers);
       setSelectedDriver((current) => {
         if (!drivers.length) return null;
@@ -244,6 +287,7 @@ export default function BookingForm({
             lng: current && current.id === booking.driver_id ? current.lng : pickup.lng,
             updated_at: new Date().toISOString(),
             eta: booking.driver_eta || current?.eta || 5,
+            distanceToPickup: current?.distanceToPickup || 0,
             rideClass: "Taxi",
             multiplier: 1,
             seats: 4
@@ -374,12 +418,12 @@ export default function BookingForm({
 
     if (availableDrivers.length === 0) {
       setSelectedDriver(null);
-      setMessage("No taxis are available nearby right now. Please try again in a few minutes.");
+      setMessage("No taxis are available within 6 km right now. Please try again in a few minutes.");
       return;
     }
 
     setSelectedDriver((current) => current || availableDrivers[0]);
-    setMessage("Online taxis found.");
+    setMessage(driverSearchRadius > NEARBY_DRIVER_RADIUS_KM ? "No taxi within 3 km, showing taxis up to 6 km." : "Nearby taxis found.");
   }
 
   async function useCurrentPickup() {
@@ -631,7 +675,7 @@ export default function BookingForm({
                   <span className="driver-avatar"><Car size={22} /></span>
                   <span className="driver-option-copy">
                     <strong>First available taxi</strong>
-                    <small>{availableDrivers.length} online nearby</small>
+                    <small>{availableDrivers.length} online within {driverSearchRadius} km</small>
                     <small>Estimated pickup in {selectedDriver.eta} min</small>
                   </span>
                   <b>EUR {calculateTaxiPrice(tripKm).toFixed(2)}</b>
@@ -641,8 +685,8 @@ export default function BookingForm({
                 <div className="trip-status-card">
                   <Clock3 size={22} />
                   <div>
-                    <strong>No online taxis</strong>
-                    <span>No taxis are available nearby right now. Please try again in a few minutes.</span>
+                    <strong>No nearby taxis right now</strong>
+                    <span>We could not find an online taxi close to your pickup. Try again in a few minutes.</span>
                   </div>
                 </div>
               )}
