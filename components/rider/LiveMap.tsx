@@ -11,7 +11,8 @@ type RoutePoint = {
   lng: number;
 };
 
-const defaultPickup: RoutePoint = { name: "", lat: 41.3275, lng: 19.8187 };
+const tiranaCenter: RoutePoint = { name: "Tirana, Albania", lat: 41.3275, lng: 19.8187 };
+const defaultPickup: RoutePoint = { name: "", lat: tiranaCenter.lat, lng: tiranaCenter.lng };
 const defaultDropoff: RoutePoint = { name: "", lat: 41.3194, lng: 19.8157 };
 
 function asLatLng(point: RoutePoint) {
@@ -141,8 +142,9 @@ export default function LiveMap({ initialRiderLocation }: { initialRiderLocation
 
         if (!mapRef.current) {
           mapRef.current = new maps.Map(mapNode.current, {
-            center: asLatLng(route.pickup),
-            zoom: 13,
+            // fix: default rider map opens on Tirana until GPS or a selected route takes over.
+            center: asLatLng(tiranaCenter),
+            zoom: 14,
             disableDefaultUI: true,
             zoomControl: true,
             mapTypeControl: false,
@@ -248,7 +250,10 @@ export default function LiveMap({ initialRiderLocation }: { initialRiderLocation
           bounds.extend({ lat: driver.lat, lng: driver.lng });
         });
 
-        if (hasPickup && hasDropoff) {
+        if (!riderLocation && !hasPickup && !hasDropoff) {
+          mapRef.current.setCenter(asLatLng(tiranaCenter));
+          mapRef.current.setZoom(14);
+        } else if (hasPickup && hasDropoff) {
           const service = new maps.DirectionsService();
           const renderer = new maps.DirectionsRenderer({
             map: mapRef.current,
