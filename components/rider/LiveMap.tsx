@@ -19,7 +19,13 @@ function asLatLng(point: RoutePoint) {
   return { lat: point.lat, lng: point.lng };
 }
 
-export default function LiveMap({ initialRiderLocation }: { initialRiderLocation?: RoutePoint | null }) {
+export default function LiveMap({
+  initialRiderLocation,
+  bookingFrameActive
+}: {
+  initialRiderLocation?: RoutePoint | null;
+  bookingFrameActive?: boolean;
+}) {
   // fix: LiveMap now uses Google Maps directly, so the old react-leaflet dynamic imports and module-scope L.DivIcon SSR crash path are removed.
   const mapNode = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
@@ -190,6 +196,7 @@ export default function LiveMap({ initialRiderLocation }: { initialRiderLocation
         riderMarkerRef.current?.setMap(null);
 
         const bounds = new maps.LatLngBounds();
+        const routeBounds = new maps.LatLngBounds();
         const pickupLatLng = asLatLng(route.pickup);
         const dropoffLatLng = asLatLng(route.dropoff);
         const hasPickup = Boolean(route.pickup.name);
@@ -221,6 +228,7 @@ export default function LiveMap({ initialRiderLocation }: { initialRiderLocation
             })
           );
           bounds.extend(pickupLatLng);
+          routeBounds.extend(pickupLatLng);
         }
 
         if (hasDropoff) {
@@ -234,6 +242,7 @@ export default function LiveMap({ initialRiderLocation }: { initialRiderLocation
             })
           );
           bounds.extend(dropoffLatLng);
+          routeBounds.extend(dropoffLatLng);
         }
 
 
@@ -247,7 +256,7 @@ export default function LiveMap({ initialRiderLocation }: { initialRiderLocation
             size: 34
           });
           markerRefs.current.push(marker);
-          bounds.extend({ lat: driver.lat, lng: driver.lng });
+          if (!hasPickup && !hasDropoff && riderLocation) bounds.extend({ lat: driver.lat, lng: driver.lng });
         });
 
         if (!riderLocation && !hasPickup && !hasDropoff) {
@@ -266,14 +275,27 @@ export default function LiveMap({ initialRiderLocation }: { initialRiderLocation
             if (status === "OK" && result) renderer.setDirections(result);
           });
 
-          mapRef.current.fitBounds(bounds, 80);
+          // fix: route preview fits only pickup/dropoff, so far-away taxis cannot pull the route under the booking frame.
+          mapRef.current.fitBounds(routeBounds, { top: 54, right: 42, bottom: 34, left: 42 });
         } else if ((hasPickup || hasDropoff || !riderLocation) && !bounds.isEmpty()) {
           // fix: a single selected pickup or dropoff is now brought into view behind the booking UI.
-          mapRef.current.fitBounds(bounds, 80);
+          mapRef.current.fitBounds(bounds, { top: 54, right: 42, bottom: 34, left: 42 });
         }
       })
       .catch((error) => setMapError(error.message));
-  }, [riderLocation, drivers, route]);
+  }, [riderLocation, drivers, route, bookingFrameActive]);
+
+  useEffect(() => {
+    if (!mapRef.current || !window.google?.maps) return;
+
+    const timer = window.setTimeout(() => {
+      // fix: after the bottom booking frame resizes the map area, Google Maps needs a resize event before refitting the route.
+      window.google.maps.event.trigger(mapRef.current, "resize");
+      setRoute((current) => ({ ...current }));
+    }, 260);
+
+    return () => window.clearTimeout(timer);
+  }, [bookingFrameActive]);
 
   return (
     <div className="map-wrap">

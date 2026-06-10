@@ -133,7 +133,7 @@ export default function Home() {
 
   return (
     <main className={`app-shell ${bookingOpen ? "booking-frame-active" : ""}`}>
-      <LiveMap initialRiderLocation={currentPickup} />
+      <LiveMap initialRiderLocation={currentPickup} bookingFrameActive={bookingOpen} />
       <div className="map-overlay" />
       <TopNav />
       {locationStatus === "outside" && (
