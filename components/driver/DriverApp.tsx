@@ -103,6 +103,8 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
   const [locationPermission, setLocationPermission] = useState<LocationPermission>("unknown");
   const locationTimerRef = useRef<number | null>(null);
   const locationWatchRef = useRef<number | null>(null);
+  const trackingStatusRef = useRef<DriverStatus | null>(null);
+  const screenWakeLockRef = useRef<any>(null);
   const lastLocationWriteRef = useRef(0);
   const activeTripRef = useRef<Booking | null>(null);
 
@@ -251,10 +253,33 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
 
   useEffect(() => {
     return () => {
-      if (locationTimerRef.current !== null) window.clearInterval(locationTimerRef.current);
-      if (locationWatchRef.current !== null) navigator.geolocation.clearWatch(locationWatchRef.current);
+      stopLocationUpdates();
     };
   }, []);
+
+  async function requestScreenWakeLock() {
+    const wakeLock = typeof navigator !== "undefined" ? (navigator as any).wakeLock : null;
+    if (!wakeLock || screenWakeLockRef.current) return;
+
+    try {
+      // fix: keep the driver screen awake where supported so foreground GPS keeps updating during active work.
+      screenWakeLockRef.current = await wakeLock.request("screen");
+      screenWakeLockRef.current.addEventListener?.("release", () => {
+        screenWakeLockRef.current = null;
+      });
+    } catch {
+      // Wake lock is optional and unsupported on some mobile browsers.
+    }
+  }
+
+  function releaseScreenWakeLock() {
+    try {
+      screenWakeLockRef.current?.release?.();
+    } catch {
+      // Ignore wake lock release errors.
+    }
+    screenWakeLockRef.current = null;
+  }
 
   function stopLocationUpdates() {
     if (locationTimerRef.current !== null) {
@@ -265,6 +290,8 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
       navigator.geolocation.clearWatch(locationWatchRef.current);
       locationWatchRef.current = null;
     }
+    trackingStatusRef.current = null;
+    releaseScreenWakeLock();
   }
 
   function readCurrentPosition() {
@@ -338,10 +365,14 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
   }
 
   function startLocationUpdates(nextStatus: DriverStatus) {
+    if (locationWatchRef.current !== null && trackingStatusRef.current === nextStatus) return;
+
     stopLocationUpdates();
     if (!navigator.geolocation) return;
+    trackingStatusRef.current = nextStatus;
+    void requestScreenWakeLock();
 
-    // fix: driver GPS uses a live watcher while online/busy, with Supabase writes throttled to every 5 seconds.
+    // fix: driver GPS stays live while the app is open, with Supabase writes throttled to every 5 seconds.
     locationWatchRef.current = navigator.geolocation.watchPosition(
       (position) => {
         const nextLocation = {
@@ -364,7 +395,49 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
         timeout: 12000
       }
     );
+
+    // fix: add a 5-second heartbeat so riders receive fresh tracking points even when the taxi is stopped.
+    locationTimerRef.current = window.setInterval(() => {
+      void saveLocation(nextStatus, false);
+    }, DRIVER_LOCATION_WRITE_INTERVAL_MS);
   }
+
+  useEffect(() => {
+    const shouldTrack = status === "online" || status === "busy" || Boolean(activeTrip);
+
+    if (!shouldTrack) {
+      stopLocationUpdates();
+      return;
+    }
+
+    const trackingStatus: DriverStatus = activeTrip ? "busy" : status === "offline" ? "busy" : status;
+    let cancelled = false;
+
+    async function resumeLiveTracking() {
+      if (!navigator.geolocation) return;
+      const saved = await saveLocation(trackingStatus, locationPermission !== "granted");
+      if (!cancelled && saved) startLocationUpdates(trackingStatus);
+    }
+
+    // fix: reloads or returning to the driver dashboard auto-resume live GPS while online/busy/assigned.
+    void resumeLiveTracking();
+
+    const refreshVisibleLocation = () => {
+      if (document.visibilityState === "visible") {
+        void saveLocation(trackingStatus, false);
+        void requestScreenWakeLock();
+      }
+    };
+
+    document.addEventListener("visibilitychange", refreshVisibleLocation);
+    window.addEventListener("focus", refreshVisibleLocation);
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", refreshVisibleLocation);
+      window.removeEventListener("focus", refreshVisibleLocation);
+    };
+  }, [activeTrip?.id, locationPermission, status]);
 
   async function updateStoredStatus(nextStatus: DriverStatus) {
     if (!supabase) return;

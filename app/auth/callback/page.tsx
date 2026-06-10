@@ -8,12 +8,18 @@ import { ensureUserProfile, getCurrentUserProfile } from "@/lib/authProfile";
 import { ensureRiderProfile } from "@/lib/riderProfile";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
+type CallbackMode = "customer" | "driver" | "admin";
+
 function callbackModeFromUrl(searchParams: { get: (name: string) => string | null }) {
   if (typeof window !== "undefined" && window.location.hostname === "driver.hoptodrop.com") {
     return "driver";
   }
 
   if (getAuthIntent() === "driver") return "driver";
+
+  if (searchParams.get("mode") === "admin" || searchParams.get("next") === "/admin") {
+    return "admin";
+  }
 
   if (searchParams.get("mode") === "driver" || searchParams.get("next")?.includes("driver.hoptodrop.com")) {
     return "driver";
@@ -27,9 +33,9 @@ function AuthCallbackContent() {
   const searchParams = useSearchParams();
   const [message, setMessage] = useState("Finishing secure sign in...");
   const [error, setError] = useState("");
-  const callbackMode = callbackModeFromUrl(searchParams);
+  const callbackMode = callbackModeFromUrl(searchParams) as CallbackMode;
   const authMethod = searchParams.get("method") === "google" ? "Google login" : "Email confirmation";
-  const errorBackHref = callbackMode === "driver" ? "https://driver.hoptodrop.com/login" : "/rider/login";
+  const errorBackHref = callbackMode === "driver" ? "https://driver.hoptodrop.com/login" : callbackMode === "admin" ? "/admin" : "/rider/login";
 
   useEffect(() => {
     async function finishAuth() {
@@ -43,7 +49,7 @@ function AuthCallbackContent() {
       const isRecoveryLink = searchParams.get("type") === "recovery" || hashParams.get("type") === "recovery";
       // fix: callback role must come from the OAuth/email URL, never stale localStorage accountMode.
       // fix: driver callbacks always finish on driver.hoptodrop.com, ignoring stale or unsafe next values.
-      const next = callbackMode === "driver" ? "https://driver.hoptodrop.com/" : searchParams.get("next") || "/rider/dashboard";
+      const next = callbackMode === "driver" ? "https://driver.hoptodrop.com/" : callbackMode === "admin" ? "/admin" : searchParams.get("next") || "/rider/dashboard";
       const oauthError = searchParams.get("error_description") || searchParams.get("error");
 
       if (callbackMode === "driver" && window.location.hostname !== "driver.hoptodrop.com" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
@@ -106,6 +112,15 @@ function AuthCallbackContent() {
         return;
       }
 
+      if (callbackMode === "admin") {
+        // fix: admin OAuth must end on the admin dashboard only for database-approved admin profiles.
+        await supabase.auth.signOut();
+        clearAccountMode();
+        clearAuthIntent();
+        setError(`This account is registered as ${profile?.role || "not approved"}. Use an admin account to access the admin dashboard.`);
+        return;
+      }
+
       if (callbackMode === "driver" && profile && profile.role !== "driver") {
         // fix: wrong-role driver OAuth attempts should not leave a rider session stuck inside the driver portal.
         await supabase.auth.signOut();
@@ -115,7 +130,7 @@ function AuthCallbackContent() {
         return;
       }
 
-      if (!profile) await ensureUserProfile(userData.user, callbackMode as "customer" | "driver");
+      if (!profile) await ensureUserProfile(userData.user, callbackMode);
       // fix: OAuth/email callback records whether the user entered customer or driver mode.
       setAccountMode(callbackMode as AccountMode);
       clearAuthIntent();

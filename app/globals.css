@@ -331,6 +331,12 @@ button { cursor: pointer; }
 .driver-status.rejected { background: #fef2f2; border-color: #fecaca; }
 .driver-status.submitted { background: #eff6ff; border-color: #bfdbfe; }
 .admin-actions { display: grid; gap: 8px; }
+.admin-stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 14px 0 18px; }
+.admin-stat-card { display: grid; gap: 5px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface-soft); }
+.admin-stat-card span { color: var(--muted); font-size: 11px; font-weight: 950; text-transform: uppercase; }
+.admin-stat-card strong { overflow-wrap: anywhere; font-size: 18px; line-height: 1.15; }
+.admin-panel-heading { display: grid; grid-template-columns: minmax(0, 1fr) 132px; align-items: center; gap: 8px; }
+.admin-panel-heading select { width: 100%; min-height: 40px; border: 1px solid var(--line); border-radius: 999px; padding: 0 10px; color: var(--ink); background: var(--surface-soft); font-size: 12px; font-weight: 850; }
 .panel-list, .driver-jobs, .list { display: grid; gap: 10px; margin-top: 20px; }
 .panel-list h2, .driver-jobs h2 { font-size: 18px; margin: 0; }
 .list-item, .job-card { padding: 12px; }

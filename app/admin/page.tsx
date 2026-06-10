@@ -87,7 +87,8 @@ export default function AdminPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${origin}/auth/callback?next=${encodeURIComponent("/admin")}&method=google`,
+        // fix: admin Google login returns to admin mode and never falls through to rider routing.
+        redirectTo: `${origin}/auth/callback?next=${encodeURIComponent("/admin")}&mode=admin&method=google`,
         queryParams: { prompt: "select_account consent" }
       }
     });
