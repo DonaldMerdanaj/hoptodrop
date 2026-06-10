@@ -98,6 +98,26 @@ export default function AdminPage() {
     }
   }
 
+  async function sendPasswordReset() {
+    if (!supabase || submitting) return;
+    if (!email) {
+      setMessage("Enter the admin email first, then request the reset link.");
+      return;
+    }
+
+    setSubmitting(true);
+    setMessage("Sending password reset link...");
+    const origin = typeof window === "undefined" ? "https://hoptodrop.com" : window.location.origin;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      // fix: admin reset emails return to the password reset screen instead of the rider home page.
+      redirectTo: `${origin}/auth/callback?type=recovery&next=${encodeURIComponent("/admin")}`
+    });
+    setSubmitting(false);
+
+    if (error) setMessage(adminAuthMessage(error.message));
+    else setMessage("Password reset link sent. Check inbox and spam/junk.");
+  }
+
   if (loading) {
     return (
       <main className="admin-page">
@@ -141,6 +161,9 @@ export default function AdminPage() {
             <button className="secondary-btn auth-google-btn" type="button" onClick={signInWithGoogle} disabled={submitting}>
               <span className="google-mark">G</span>
               Continue with Google
+            </button>
+            <button className="auth-toggle" type="button" onClick={sendPasswordReset} disabled={submitting}>
+              Forgot password? Send reset link
             </button>
             {message && <p className="status-message">{message}</p>}
           </form>

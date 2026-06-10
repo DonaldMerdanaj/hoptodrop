@@ -39,6 +39,8 @@ function AuthCallbackContent() {
       }
 
       const code = searchParams.get("code");
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const isRecoveryLink = searchParams.get("type") === "recovery" || hashParams.get("type") === "recovery";
       // fix: callback role must come from the OAuth/email URL, never stale localStorage accountMode.
       // fix: driver callbacks always finish on driver.hoptodrop.com, ignoring stale or unsafe next values.
       const next = callbackMode === "driver" ? "https://driver.hoptodrop.com/" : searchParams.get("next") || "/rider/dashboard";
@@ -63,7 +65,6 @@ function AuthCallbackContent() {
         }
       } else {
         // fix: support Supabase email confirmation links that restore the session from URL tokens instead of an OAuth code.
-        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
         const accessToken = hashParams.get("access_token");
         const refreshToken = hashParams.get("refresh_token");
 
@@ -84,6 +85,12 @@ function AuthCallbackContent() {
             return;
           }
         }
+      }
+
+      if (isRecoveryLink) {
+        // fix: password recovery links open the reset form instead of redirecting to the rider home page.
+        router.replace(`/reset-password${window.location.hash || ""}`);
+        return;
       }
 
       const { data: userData, error: userError } = await supabase.auth.getUser();

@@ -29,6 +29,14 @@ export default function Home() {
   const [checkingRole, setCheckingRole] = useState(true);
 
   useEffect(() => {
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    if (hashParams.get("type") === "recovery") {
+      // fix: Supabase dashboard reset emails can land on the Site URL, so forward recovery links to the reset screen.
+      router.replace(`/reset-password${window.location.hash}`);
+    }
+  }, [router]);
+
+  useEffect(() => {
     async function protectRiderBookingPage() {
       if (!isSupabaseConfigured) {
         setCheckingRole(false);
