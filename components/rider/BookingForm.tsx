@@ -42,7 +42,7 @@ function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number) {
 function calculateTaxiPrice(distance: number, multiplier = 1) {
   const minimumFare = 4;
   const includedKm = 3;
-  const extraKmRate = 0.9;
+  const extraKmRate = 0.8;
   const baseFare = distance <= includedKm ? minimumFare : minimumFare + (distance - includedKm) * extraKmRate;
   return baseFare * multiplier;
 }
@@ -111,13 +111,20 @@ export default function BookingForm({
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [riderLoggedIn, setRiderLoggedIn] = useState(false);
   const [driverSearchRadius, setDriverSearchRadius] = useState(NEARBY_DRIVER_RADIUS_KM);
+  const [routeDistanceKm, setRouteDistanceKm] = useState<number | null>(null);
+  const [routeDistanceLoading, setRouteDistanceLoading] = useState(false);
   const formRef = useRef<HTMLFormElement | null>(null);
+  const routeRequestIdRef = useRef(0);
   const dragStartY = useRef<number | null>(null);
 
-  const tripKm = distanceKm(pickup.lat, pickup.lng, dropoff.lat, dropoff.lng);
+  const straightLineTripKm = distanceKm(pickup.lat, pickup.lng, dropoff.lat, dropoff.lng);
+  const tripKm = routeDistanceKm ?? straightLineTripKm;
   const estimatedPrice = useMemo(() => {
     return Number(calculateTaxiPrice(tripKm, selectedDriver?.multiplier || 1).toFixed(2));
   }, [selectedDriver?.multiplier, tripKm]);
+  const distanceLabel = routeDistanceLoading
+    ? "Checking route..."
+    : `${tripKm.toFixed(1)} km route`;
 
   useEffect(() => {
     const hasValidRoute = Boolean(
@@ -135,6 +142,53 @@ export default function BookingForm({
     }
     if (step === "started") routePreview(pickup, dropoff);
   }, [pickup, dropoff, selectedDriver, step]);
+
+  useEffect(() => {
+    const hasValidRoute = Boolean(
+      pickup.name.trim() &&
+      dropoff.name.trim() &&
+      [pickup.lat, pickup.lng, dropoff.lat, dropoff.lng].every(Number.isFinite)
+    );
+
+    if (!hasValidRoute) {
+      setRouteDistanceKm(null);
+      setRouteDistanceLoading(false);
+      return;
+    }
+
+    const requestId = routeRequestIdRef.current + 1;
+    routeRequestIdRef.current = requestId;
+    setRouteDistanceLoading(true);
+
+    loadGoogleMaps()
+      .then((maps) => {
+        const service = new maps.DirectionsService();
+        service.route(
+          {
+            origin: { lat: pickup.lat, lng: pickup.lng },
+            destination: { lat: dropoff.lat, lng: dropoff.lng },
+            travelMode: maps.TravelMode.DRIVING
+          },
+          (result: any, status: string) => {
+            if (routeRequestIdRef.current !== requestId) return;
+            setRouteDistanceLoading(false);
+
+            const meters = result?.routes?.[0]?.legs?.reduce((sum: number, leg: any) => {
+              return sum + (leg?.distance?.value || 0);
+            }, 0);
+
+            // fix: fare estimate now uses Google driving-route distance, not straight-line distance.
+            if (status === "OK" && meters > 0) setRouteDistanceKm(meters / 1000);
+            else setRouteDistanceKm(null);
+          }
+        );
+      })
+      .catch(() => {
+        if (routeRequestIdRef.current !== requestId) return;
+        setRouteDistanceLoading(false);
+        setRouteDistanceKm(null);
+      });
+  }, [pickup.lat, pickup.lng, pickup.name, dropoff.lat, dropoff.lng, dropoff.name]);
 
   useEffect(() => {
     if (mapPickup) setPickup(mapPickup);
@@ -672,7 +726,7 @@ export default function BookingForm({
             {selectedDriver ? (
               <>
                 <div className="fare-box">
-                  <div><span>{tripKm.toFixed(1)} km trip</span><strong>Choose your ride</strong></div>
+                  <div><span>{distanceLabel}</span><strong>Choose your ride</strong></div>
                   <div><span>From</span><strong>EUR {calculateTaxiPrice(tripKm).toFixed(2)}</strong></div>
                 </div>
                 <div className="driver-pick-card active">
@@ -721,7 +775,7 @@ export default function BookingForm({
               <label><span>Payment</span><input value="Cash" readOnly /></label>
             </div>
             <div className="fare-box">
-              <div><span>{tripKm.toFixed(1)} km trip</span><strong>EUR {estimatedPrice.toFixed(2)}</strong></div>
+              <div><span>{distanceLabel}</span><strong>EUR {estimatedPrice.toFixed(2)}</strong></div>
               <div><span>Route</span><strong>Driver to pickup</strong></div>
             </div>
             <button className="primary-btn request-btn" type="submit">

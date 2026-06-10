@@ -76,6 +76,18 @@ function money(value: number) {
   return `EUR ${Number(value || 0).toFixed(2)}`;
 }
 
+function tripTotal(trip: Booking) {
+  return Number(trip.estimated_price || 0);
+}
+
+function commissionAmount(value: number) {
+  return value * 0.1;
+}
+
+function driverPayout(value: number) {
+  return value - commissionAmount(value);
+}
+
 export default function DriverApp({ initialProfile }: { initialProfile: DriverProfile }) {
   const router = useRouter();
   const [tab, setTab] = useState<DriverTab>("home");
@@ -457,9 +469,12 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
 
   const completed = history.filter((trip) => trip.status === "completed");
   const today = new Date().toISOString().slice(0, 10);
-  const daily = completed.filter((trip) => trip.created_at.startsWith(today)).reduce((sum, trip) => sum + Number(trip.estimated_price || 0), 0);
-  const monthly = completed.filter((trip) => trip.created_at.slice(0, 7) === today.slice(0, 7)).reduce((sum, trip) => sum + Number(trip.estimated_price || 0), 0);
-  const weekly = completed.slice(0, 7).reduce((sum, trip) => sum + Number(trip.estimated_price || 0), 0);
+  const daily = completed.filter((trip) => trip.created_at.startsWith(today)).reduce((sum, trip) => sum + tripTotal(trip), 0);
+  const monthly = completed.filter((trip) => trip.created_at.slice(0, 7) === today.slice(0, 7)).reduce((sum, trip) => sum + tripTotal(trip), 0);
+  const weekly = completed.slice(0, 7).reduce((sum, trip) => sum + tripTotal(trip), 0);
+  const totalGross = completed.reduce((sum, trip) => sum + tripTotal(trip), 0);
+  const totalCommission = commissionAmount(totalGross);
+  const totalPayout = driverPayout(totalGross);
   const chartBars = [daily, weekly / 7, monthly / Math.max(1, new Date().getDate())];
   const maxBar = Math.max(...chartBars, 1);
 
@@ -504,7 +519,16 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
             <article className="driver-history-card" key={trip.id}>
               <span className={`status-pill ${trip.status}`}>{trip.status}</span>
               <strong>{trip.pickup} to {trip.dropoff}</strong>
-              <p>{new Date(trip.created_at).toLocaleString()} - {money(Number(trip.estimated_price))}</p>
+              <p>{new Date(trip.created_at).toLocaleString()}</p>
+              {trip.status === "completed" ? (
+                <div className="driver-trip-money">
+                  <span><small>Total price</small><b>{money(tripTotal(trip))}</b></span>
+                  <span><small>HopToDrop 10%</small><b>{money(commissionAmount(tripTotal(trip)))}</b></span>
+                  <span><small>Your payout</small><b>{money(driverPayout(tripTotal(trip)))}</b></span>
+                </div>
+              ) : (
+                <p>{money(tripTotal(trip))}</p>
+              )}
             </article>
           ))}
           {!filteredHistory.length && <p className="driver-muted">No trips found.</p>}
@@ -515,9 +539,14 @@ export default function DriverApp({ initialProfile }: { initialProfile: DriverPr
         <section className="driver-tab-page">
           <Header title="Earnings" subtitle={`${completed.length} completed trips`} />
           <div className="driver-earnings-grid">
-            <Metric label="Today" value={money(daily)} />
-            <Metric label="Week" value={money(weekly)} />
-            <Metric label="Month" value={money(monthly)} />
+            <Metric label="Today gross" value={money(daily)} />
+            <Metric label="Week gross" value={money(weekly)} />
+            <Metric label="Month gross" value={money(monthly)} />
+          </div>
+          <div className="driver-commission-card">
+            <Metric label="Completed route total" value={money(totalGross)} />
+            <Metric label="HopToDrop commission 10%" value={money(totalCommission)} />
+            <Metric label="Driver payout after commission" value={money(totalPayout)} />
           </div>
           <div className="driver-chart-card">
             {chartBars.map((value, index) => (

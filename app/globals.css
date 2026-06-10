@@ -445,7 +445,13 @@ button { cursor: pointer; }
 .driver-history-card { display: grid; gap: 7px; margin-bottom: 10px; padding: 13px; }
 .driver-history-card strong { font-size: 15px; line-height: 1.25; }
 .driver-history-card p { margin: 0; color: #6b7280; font-size: 12px; font-weight: 750; }
+.driver-trip-money { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 4px; }
+.driver-trip-money span { display: grid; gap: 3px; min-width: 0; padding: 9px; border: 1px solid #eef2f7; border-radius: 14px; background: #f8fafc; }
+.driver-trip-money small { color: #6b7280; font-size: 10px; line-height: 1.15; font-weight: 950; text-transform: uppercase; }
+.driver-trip-money b { overflow-wrap: anywhere; font-size: 13px; }
 .driver-earnings-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.driver-commission-card { display: grid; gap: 8px; margin-bottom: 12px; }
+.driver-commission-card .driver-metric-card { padding: 13px; }
 .driver-metric-card { display: grid; gap: 7px; min-width: 0; padding: 12px; }
 .driver-metric-card span { color: #6b7280; font-size: 11px; font-weight: 950; text-transform: uppercase; }
 .driver-metric-card strong { overflow-wrap: anywhere; font-size: 17px; }
@@ -472,6 +478,8 @@ button { cursor: pointer; }
   .driver-glass-top, .driver-glass-bottom, .incoming-ride-card, .driver-bottom-tabs { border-color: rgba(255,255,255,.12); background: rgba(17,24,39,.84); color: #f9fafb; }
   .driver-muted, .driver-glass-top span, .driver-tab-header span, .driver-tab-header p, .driver-profile-card span, .driver-profile-row span, .driver-history-card p, .incoming-ride-card p, .incoming-meta small { color: #cbd5e1; }
   .active-trip-card, .driver-history-card, .driver-chart-card, .driver-profile-card, .driver-doc-list, .driver-metric-card, .driver-search-row { border-color: rgba(255,255,255,.12); background: #111827; color: #f9fafb; }
+  .driver-trip-money span { border-color: rgba(255,255,255,.1); background: #0f172a; }
+  .driver-trip-money small { color: #cbd5e1; }
   .driver-location-card { border-color: rgba(255,255,255,.12); color: #f9fafb; background: rgba(17,24,39,.9); }
   .driver-location-card.warning { border-color: rgba(248,113,113,.5); background: rgba(127,29,29,.72); }
   .driver-location-card p { color: #cbd5e1; }
